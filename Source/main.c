@@ -1,5 +1,6 @@
 #include "util.h"
 #include "twi.h"
+#include "spi.h"
 #include "lcd.h"
 #include "servo.h"
 #include "rtc.h"
@@ -17,6 +18,11 @@ static inline void SystemSleep(void);
 
 static void TimeThread(void);
 static char HexToAscii(uint8_t hex);
+static void RfidEcho(void);
+
+static void RfidEcho(void) {
+  
+}
 
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
@@ -31,6 +37,7 @@ __attribute__ ((OS_main)) int main(void) {
     ServoService();
     TwiService();
     LcdService();
+    RfidEcho();
     
     TimeThread();
     LockThread();
@@ -115,7 +122,7 @@ static char HexToAscii(uint8_t hex) {
 inline static void SystemInit(void) {
   CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
   CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
-  
+
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
   PORTC = MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
@@ -123,6 +130,11 @@ inline static void SystemInit(void) {
   TWCR = MSK(TWINT) | TWI_ON;
   
   DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(HEARTBEAT_D);     // SERVO AND RTC SETUP
+
+  PORTB = MSK(SPI_RFID) | MSK(SPI_MOSI) | MSK(SPI_SCK);
+  DDRB = MSK(SPI_RFID) | MSK(SPI_MOSI) | MSK(SPI_SCK);               // GPIO SETUP
+  // SPSR = MSK(SPI2X);
+  SPCR = MSK(SPIE) | MSK(SPE) | MSK(MSTR) | MSK(SPR1) | MSK(SPR0);      // SPI SETUP
   
   OCR2A = 0xf9;                         // SLEEP TIMER SETUP
   OCR2B = 0x7c;

@@ -17,6 +17,7 @@ typedef struct {
 
 #define REG(ADDR)		(*(volatile BITFIELD *)&ADDR)
 #define MSK(BIT)        (1u << (BIT))
+#define CAT(LHS, RHS)   LHS ## RHS
 
 #define TINY_BUTTON1		MSK(0)
 #define TINY_BUTTON2		MSK(1)
