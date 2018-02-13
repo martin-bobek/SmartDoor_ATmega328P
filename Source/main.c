@@ -1,6 +1,7 @@
 #include "util.h"
 #include "twi.h"
 #include "lcd.h"
+#include "servo.h"
 
 #define HEARTBEAT_ON()          (REG(PORTB).Bit0 = 1)
 #define HEARTBEAT_OFF()         (REG(PORTB).Bit0 = 0)
@@ -19,13 +20,35 @@ __attribute__ ((OS_main)) int main(void) {
   uint16_t lcd_tick = 0;
   uint8_t lcd_msg = 0;
   uint8_t lcd_success = 1;
+  uint8_t servo_pos = 63;
+  uint8_t servo_tick = 0;
+  uint8_t servo_dir = 0;
   //PINB_Bit1 = 1;
   while (1) {
     HEARTBEAT_ON(); 
     
-    TwiService();
-    LcdService();
+    ServoService();
+    //TwiService();
+    //LcdService();
     
+    if (servo_tick == 20) {
+      servo_tick = 0;
+      if (servo_dir == 0) {
+        servo_pos++;
+        if (servo_pos == MAX_POS)
+          servo_dir = 1;
+      }
+      else {
+        servo_pos--;
+        if (servo_pos == 0)
+          servo_dir = 0;
+      }
+      ServoPosition(SERVO_1, servo_pos);
+      ServoPosition(SERVO_2, servo_pos);
+    }
+    servo_tick++;
+    
+    /*
     if (!lcd_success || lcd_tick == 0) {
       if (lcd_tick == 0)
         lcd_tick = 1000;
@@ -50,7 +73,7 @@ __attribute__ ((OS_main)) int main(void) {
       }
     }
     lcd_tick--;
-    
+    */
     
     /**
     if (flashes == 0) {
@@ -83,20 +106,22 @@ __attribute__ ((OS_main)) int main(void) {
 }
 
 inline static void SystemInit(void) {
-  CLKPR = MSK(CLKPCE);
+  CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
   CLKPR = 0;                            // increases processor speed to 8MHz
   
-  DDRB = (MSK(1) | MSK(0));
-  SMCR = MSK(SE);
+  DDRB = MSK(1) | MSK(0);               // GPIO SETUP
+  SMCR = MSK(SE);                       // ENABLE SLEEP
   
-  PORTC = MSK(5) | MSK(4);
+  PORTC = MSK(5) | MSK(4);              // TWI SETUP
   TWBR = 32;
   TWCR = MSK(TWINT) | TWI_ON;
   
-  OCR0A = 0x7c;
-  TCCR0A = MSK(WGM01);
-  TIMSK0 = MSK(OCIE0A);
-  TCCR0B = MSK(CS01) | MSK(CS00);
+  DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND);     // SERVO SETUP
+  
+  OCR2A = 0xf9;                         // SLEEP TIMER SETUP
+  TCCR2A = MSK(WGM21);
+  TIMSK2 = MSK(OCIE2A);
+  TCCR2B = MSK(CS21) | MSK(CS20);
   
   sei();
 }
@@ -114,6 +139,6 @@ inline static void SystemSleep(void) {
   G_u8ExpectedSysTick++;
 }
 
-ISR(TIMER0_COMPA_vect) {
+ISR(TIMER2_COMPA_vect) {
   G_u8SysTick++;
 }

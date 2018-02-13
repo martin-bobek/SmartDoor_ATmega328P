@@ -31,7 +31,7 @@ static uint8_t index = 0;
 static uint8_t nibbleEnable = 0;
 
 static void Init(void) {
-  uint8_t success;
+  uint8_t success = 0;
   const uint8_t startCommands[] = { MODE_NIBBLE, LCD_ON, INC_NOSHIFT };
   while (index < 8) {
     switch (index) {
