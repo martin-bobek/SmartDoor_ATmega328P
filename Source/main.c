@@ -2,6 +2,7 @@
 #include "twi.h"
 #include "lcd.h"
 #include "servo.h"
+#include "rtc.h"
 
 #define HEARTBEAT_ON()          (REG(PORTB).Bit0 = 1)
 #define HEARTBEAT_OFF()         (REG(PORTB).Bit0 = 0)
@@ -17,7 +18,8 @@ __attribute__ ((OS_main)) int main(void) {
   
   //uint8_t flashes = 0;
   //uint8_t led_tick = 0;
-  uint16_t lcd_tick = 0;
+  uint8_t prev_sec = 0xFF;
+  char time[] = "  :  :  ";
   uint8_t lcd_msg = 0;
   uint8_t lcd_success = 1;
   uint8_t servo_pos = 63;
@@ -27,9 +29,10 @@ __attribute__ ((OS_main)) int main(void) {
   while (1) {
     HEARTBEAT_ON(); 
     
+    RtcService();
     ServoService();
-    //TwiService();
-    //LcdService();
+    TwiService();
+    LcdService();
     
     if (servo_tick == 20) {
       servo_tick = 0;
@@ -48,11 +51,19 @@ __attribute__ ((OS_main)) int main(void) {
     }
     servo_tick++;
     
-    /*
-    if (!lcd_success || lcd_tick == 0) {
-      if (lcd_tick == 0)
-        lcd_tick = 1000;
-      switch (lcd_msg) {
+    
+    if (!lcd_success || (prev_sec != G_Seconds)) {
+      if (prev_sec != G_Seconds) {
+        prev_sec = G_Seconds;
+        time[0] = (G_Hours >> 4) + '0';
+        time[1] = (G_Hours & 0xF) + '0';
+        time[3] = (G_Minutes >> 4) + '0';
+        time[4] = (G_Minutes & 0xF) + '0';
+        time[6] = (G_Seconds >> 4) + '0';
+        time[7] = (G_Seconds & 0xF) + '0';
+      }
+      lcd_success = LcdWrite(0, time);
+      /*switch (lcd_msg) {
       case 0:
         lcd_success = LcdWrite(0, "Hello!");
         break;
@@ -65,15 +76,14 @@ __attribute__ ((OS_main)) int main(void) {
       case 3:
         lcd_success = LcdWrite(LINE2_START, "400   ");
         break;
-      }
+      }*/
       if (lcd_success) {
         lcd_msg++;
         if (lcd_msg == 4)
           lcd_msg = 0;
       }
     }
-    lcd_tick--;
-    */
+    //lcd_tick--;
     
     /**
     if (flashes == 0) {
@@ -112,16 +122,17 @@ inline static void SystemInit(void) {
   DDRB = MSK(1) | MSK(0);               // GPIO SETUP
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
-  PORTC = MSK(5) | MSK(4);              // TWI SETUP
+  PORTC = MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
   TWBR = 32;
   TWCR = MSK(TWINT) | TWI_ON;
   
-  DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND);     // SERVO SETUP
+  DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D);     // SERVO AND RTC SETUP
   
   OCR2A = 0xf9;                         // SLEEP TIMER SETUP
-  TCCR2A = MSK(WGM21);
+  OCR2B = 0x7c;
+  TCCR2A = TCCR2A_SETUP;
   TIMSK2 = MSK(OCIE2A);
-  TCCR2B = MSK(CS21) | MSK(CS20);
+  TCCR2B = TCCR2B_SETUP;
   
   sei();
 }

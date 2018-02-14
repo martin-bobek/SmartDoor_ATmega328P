@@ -1,6 +1,5 @@
 #include "twi.h"
 
-#define MSK(BIT)                (uint8_t)(1 << (BIT))
 #define BUF_LEN                 16
 #define STAT_MSK                0xf8
 #define START_ACK               0x08
