@@ -6,9 +6,7 @@
 #include "rtc.h"
 #include "lock.h"
 #include "pet_door.h"
-
-#define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
-#define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
+#include "mfrc.h"
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -18,11 +16,57 @@ static inline void SystemSleep(void);
 
 static void TimeThread(void);
 static char HexToAscii(uint8_t hex);
+/*
 static void RfidEcho(void);
+static char HexToAscii(uint8_t hex);
 
+#define MSB     (1 << 7)
+#define ADDR(LOC)    (MSB | ((LOC) << 1))
 static void RfidEcho(void) {
+  static uint8_t state = 0;
+  static uint8_t data[3] = { ADDR(1), ADDR(2), 0 };
+  static char msg[5];
+  static uint8_t ready = 250;
   
+  switch (state) {
+  case 0:
+    ready--;
+    if (ready == 3) {
+      data[0] = ADDR(1);
+      data[1] = ADDR(2);
+      data[2] = 0;
+      state++;
+    }
+    break;
+  case 1:
+    spiTransfer(SPI_RFID, &ready, data);
+    state++;
+    break;
+  case 2:
+    if (ready == 0) {
+      msg[1] = HexToAscii(data[1]);
+      msg[0] = HexToAscii(data[1] >> 4);
+      msg[3] = HexToAscii(data[2]);
+      msg[2] = HexToAscii(data[2] >> 4);
+      state++;
+    }
+    break;
+  case 3:
+    if (LcdWrite(0, msg)) {
+      ready = 250;
+      state = 0;
+    }
+    break;
+  }
 }
+
+static char HexToAscii(uint8_t hex) {
+  hex &= 0xF;
+  if (hex < 10)
+    return hex + '0';
+  return hex - 10 + 'A';
+}
+*/
 
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
@@ -30,6 +74,7 @@ __attribute__ ((OS_main)) int main(void) {
   uint8_t prevTiny = 0;
   uint8_t tinySuccess = 1;
   char str[] = "  ";
+  uint8_t success = 1;
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -37,7 +82,7 @@ __attribute__ ((OS_main)) int main(void) {
     ServoService();
     TwiService();
     LcdService();
-    RfidEcho();
+    MfrcService();
     
     TimeThread();
     LockThread();
@@ -52,6 +97,27 @@ __attribute__ ((OS_main)) int main(void) {
 	if (!tinySuccess)
 		tinySuccess = LcdWrite(LINE2_START, str);
 
+    if (success && G_MfrcTestFlag)
+      success = 0;
+    if (!success) {
+      switch (G_MfrcTestFlag) {
+      case 1:
+        success = LcdWrite(LINE2_START, "Init Done!");
+        break;
+      case 2:
+        success = LcdWrite(LINE2_START, "No Response!");
+        break;
+      case 3:
+        success = LcdWrite(LINE2_START, "PICC Detected!");
+        break;
+      case 4: 
+        success = LcdWrite(LINE2_START, "Checkpoint!");
+        break;
+      }
+      if (success)
+        G_MfrcTestFlag = 0;
+    }
+    
     /*
     if (flashes == 0) {
       switch (G_TwiError) {

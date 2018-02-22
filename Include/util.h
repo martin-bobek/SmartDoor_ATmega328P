@@ -48,4 +48,8 @@ extern volatile uint8_t G_TinyStatus;
 #define TCCR2A_SETUP    MSK(WGM21)
 #define TCCR2B_SETUP    (MSK(CS21) | MSK(CS20))
 
+#define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
+#define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
+
 #endif
+
