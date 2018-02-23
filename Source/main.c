@@ -13,19 +13,12 @@ static uint8_t G_u8ExpectedSysTick = 0;
 static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
+static void TimeThread(void);
+static void ServoThread(void);
+
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
-  //uint8_t flashes = 0;
-  //uint8_t led_tick = 0;
-  uint8_t prev_sec = 0xFF;
-  char time[] = "  :  :  ";
-  uint8_t lcd_msg = 0;
-  uint8_t lcd_success = 1;
-  uint8_t servo_pos = 63;
-  uint8_t servo_tick = 0;
-  uint8_t servo_dir = 0;
-  //PINB_Bit1 = 1;
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -34,58 +27,10 @@ __attribute__ ((OS_main)) int main(void) {
     TwiService();
     LcdService();
     
-    if (servo_tick == 20) {
-      servo_tick = 0;
-      if (servo_dir == 0) {
-        servo_pos++;
-        if (servo_pos == MAX_POS)
-          servo_dir = 1;
-      }
-      else {
-        servo_pos--;
-        if (servo_pos == 0)
-          servo_dir = 0;
-      }
-      ServoPosition(SERVO_1, servo_pos);
-      ServoPosition(SERVO_2, servo_pos);
-    }
-    servo_tick++;
+    ServoThread();
+    TimeThread();
     
-    
-    if (!lcd_success || (prev_sec != G_Seconds)) {
-      if (prev_sec != G_Seconds) {
-        prev_sec = G_Seconds;
-        time[0] = (G_Hours >> 4) + '0';
-        time[1] = (G_Hours & 0xF) + '0';
-        time[3] = (G_Minutes >> 4) + '0';
-        time[4] = (G_Minutes & 0xF) + '0';
-        time[6] = (G_Seconds >> 4) + '0';
-        time[7] = (G_Seconds & 0xF) + '0';
-      }
-      lcd_success = LcdWrite(0, time);
-      /*switch (lcd_msg) {
-      case 0:
-        lcd_success = LcdWrite(0, "Hello!");
-        break;
-      case 1:
-        lcd_success = LcdWrite(LINE2_START, "World!");
-        break;
-      case 2:
-        lcd_success = LcdWrite(0, "ENEL  ");
-        break;
-      case 3:
-        lcd_success = LcdWrite(LINE2_START, "400   ");
-        break;
-      }*/
-      if (lcd_success) {
-        lcd_msg++;
-        if (lcd_msg == 4)
-          lcd_msg = 0;
-      }
-    }
-    //lcd_tick--;
-    
-    /**
+    /*
     if (flashes == 0) {
       switch (G_TwiError) {
       case TWI_STARTFAIL:
@@ -108,11 +53,64 @@ __attribute__ ((OS_main)) int main(void) {
         PINB_Bit1 = 1;
       }
     }
-*/ 
+    */ 
     
     HEARTBEAT_OFF();
     SystemSleep();
   }
+}
+
+static void TimeThread(void) {
+  static char time[] = "  :  :  ";
+  static uint8_t prevSec = 0xFF;
+  static uint8_t lcdSuccess = 1;
+  static uint16_t ticksToChange = 0;
+  
+  if (ticksToChange <= 5000)
+    ticksToChange++;
+  if (ticksToChange == 5000) {
+    G_Seconds = (3 << 4) | 1;
+    G_Minutes = (5 << 4) | 7;
+    G_Hours = (1 << 4) | 2;
+    G_TimeWrite = CHANGE_FLAG;
+  }
+  
+  if (prevSec != G_Seconds) {
+    prevSec = G_Seconds;
+    time[0] = (G_Hours >> 4) + '0';
+    time[1] = (G_Hours & 0xF) + '0';
+    time[3] = (G_Minutes >> 4) + '0';
+    time[4] = (G_Minutes & 0xF) + '0';
+    time[6] = (G_Seconds >> 4) + '0';
+    time[7] = (G_Seconds & 0xF) + '0';
+    lcdSuccess = 0;
+  }    
+  if (!lcdSuccess) {
+    lcdSuccess = LcdWrite(0, time);
+  }
+}
+
+static void ServoThread(void) {
+  static uint8_t servoPos = 63;
+  static uint8_t servoTick = 0;
+  static uint8_t servoDir = 0;
+  
+  if (servoTick == 20) {
+  servoTick = 0;
+  if (servoDir == 0) {
+    servoPos++;
+    if (servoPos == MAX_POS)
+      servoDir = 1;
+  }
+  else {
+    servoPos--;
+    if (servoPos == 0)
+      servoDir = 0;
+  }
+    ServoPosition(SERVO_1, servoPos);
+    ServoPosition(SERVO_2, servoPos);
+  }
+  servoTick++;
 }
 
 inline static void SystemInit(void) {
