@@ -3,9 +3,11 @@
 #include "spi.h"
 
 uint8_t G_MfrcTestFlag;
+uint32_t G_PiccUid;
 
 static void Init(void);
 static void Request(void);
+static void AntiCollision(void);
 static void Timeout(void);
 static void FillFifo(void);
 static void Receive(void);
@@ -105,8 +107,38 @@ static void Request(void) {
   if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))
     state++;
 }
+static void AntiCollision(void) {
+  static uint8_t state = 0;
+  
+  switch (state) {
+  case 0:
+    dataBuffer[0] = 0x93;               // Anit-Collision/Select: cascade level 1
+    dataBuffer[1] = 2 << 4;             // no bits of uid known 
+    spiSize = 2; state++;
+    FillFifo();
+    return;
+  case 1:
+    cmdBuffer[0] = ADDRESS(WRITE, COMIRQ_REG);
+    cmdBuffer[1] = 0x7F;                // clear any pending interrupts
+    spiSize = 2; state++;
+  case 2: break;
+  case 3:
+    cmdBuffer[0] = ADDRESS(WRITE, BITFRAMING_REG);
+    cmdBuffer[1] = 0x80;                // STARTS transfer. Assumes other bits were 0 in register
+    spiSize = 2; state++;
+  case 4: break;
+  case 5:
+    state = 0;
+    Receive();
+    return;
+  }
+  
+  if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))
+    state++;
+}
 static void Timeout(void) {
   if (timeoutCounter == 0) {
+    timeoutCounter = 500;
     MfrcService = ReturnPtr;
     return;
   }
@@ -120,6 +152,7 @@ static void Receive(void) {
     if (cmdBuffer[1] & 0x11) { // timeout or idle interrupt
       G_MfrcTestFlag = 2;
       state = 0;
+      ReturnPtr = Request;
       MfrcService = Timeout;
       return;
     }
@@ -131,9 +164,8 @@ static void Receive(void) {
     }
     state = 0;
   case 0:               // intentional fallthrough
-    ReturnPtr = Request;
+    ReturnPtr = MfrcService;
     MfrcService = Receive;
-    timeoutCounter = 500;
     cmdBuffer[0] = ADDRESS(READ, COMIRQ_REG);
     cmdBuffer[1] = 0;
     spiSize = 2; state++;
@@ -143,6 +175,7 @@ static void Receive(void) {
         cmdBuffer[1] & 0x08) {  // Collision error
       G_MfrcTestFlag = 2;
       state = 0;
+      ReturnPtr = Request;
       MfrcService = Timeout;
       return;
     }
@@ -154,6 +187,7 @@ static void Receive(void) {
     if (cmdBuffer[1] & 0x07) {  // only a partial byte received
       G_MfrcTestFlag = 2;
       state = 0;
+      ReturnPtr = Request;
       MfrcService = Timeout;
       return;
     }
@@ -162,12 +196,51 @@ static void Receive(void) {
     spiSize = 2; state++;
     break;
   case 8:
-    state = 0;
-    MfrcService = Timeout;
-    if (cmdBuffer[1] != 2)  // must receive only 2 bytes on a request
+    if (ReturnPtr == Request) {
+      state = 0;
+      if (cmdBuffer[1] != 2) { // must receive only 2 bytes on a request
+        ReturnPtr = Request;
+        MfrcService = Timeout;
+        G_MfrcTestFlag = 2;
+      }
+      else {
+        MfrcService = AntiCollision;
+        G_MfrcTestFlag = 3;
+      }
+      return;
+    }
+    if (cmdBuffer[1] != 5) {
+      state = 0;
+      ReturnPtr = Request;
+      MfrcService = Timeout;
       G_MfrcTestFlag = 2;
-    else
-      G_MfrcTestFlag = 3;
+      return;
+    }
+    else {
+      cmdBuffer[0] = ADDRESS(READ, FIFODATA_REG);
+      cmdBuffer[1] = ADDRESS(READ, FIFODATA_REG);
+      cmdBuffer[2] = ADDRESS(READ, FIFODATA_REG);
+      cmdBuffer[3] = ADDRESS(READ, FIFODATA_REG);
+      cmdBuffer[4] = ADDRESS(READ, FIFODATA_REG);
+      cmdBuffer[5] = 0;
+      spiSize = 6; state++;
+    }
+  case 9: break;
+  case 10: 
+    if (spiSize != 0)
+      return;
+    state = 0;
+    ReturnPtr = Request;
+    MfrcService = Timeout;
+    if ((cmdBuffer[1] ^ cmdBuffer[2] ^ cmdBuffer[3] ^ cmdBuffer[4]) != cmdBuffer[5])
+      G_MfrcTestFlag = 4;
+    else {
+      G_PiccUid = cmdBuffer[4];
+      G_PiccUid |= (uint32_t)cmdBuffer[3] << 8;
+      G_PiccUid |= (uint32_t)cmdBuffer[2] << 16;
+      G_PiccUid |= (uint32_t)cmdBuffer[1] << 24;
+      G_MfrcTestFlag = 5;
+    }
     return;
   }
   

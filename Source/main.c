@@ -16,9 +16,9 @@ static inline void SystemSleep(void);
 
 static void TimeThread(void);
 static char HexToAscii(uint8_t hex);
+
 /*
 static void RfidEcho(void);
-static char HexToAscii(uint8_t hex);
 
 #define MSB     (1 << 7)
 #define ADDR(LOC)    (MSB | ((LOC) << 1))
@@ -59,13 +59,6 @@ static void RfidEcho(void) {
     break;
   }
 }
-
-static char HexToAscii(uint8_t hex) {
-  hex &= 0xF;
-  if (hex < 10)
-    return hex + '0';
-  return hex - 10 + 'A';
-}
 */
 
 __attribute__ ((OS_main)) int main(void) {
@@ -75,6 +68,7 @@ __attribute__ ((OS_main)) int main(void) {
   uint8_t tinySuccess = 1;
   char str[] = "  ";
   uint8_t success = 1;
+  char idStr[] = "              ";
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -105,13 +99,20 @@ __attribute__ ((OS_main)) int main(void) {
         success = LcdWrite(LINE2_START, "Init Done!");
         break;
       case 2:
-        success = LcdWrite(LINE2_START, "No Response!");
+        success = LcdWrite(LINE2_START, "No Response!  ");
         break;
       case 3:
         success = LcdWrite(LINE2_START, "PICC Detected!");
         break;
       case 4: 
-        success = LcdWrite(LINE2_START, "Checkpoint!");
+        success = LcdWrite(LINE2_START, "Bad UID!      ");
+        break;
+      case 5:
+        for (uint8_t i = 8; i-- > 0; ) {
+          idStr[i] = HexToAscii(G_PiccUid);
+          G_PiccUid >>= 4;
+        }
+        success = LcdWrite(LINE2_START, idStr);
         break;
       }
       if (success)

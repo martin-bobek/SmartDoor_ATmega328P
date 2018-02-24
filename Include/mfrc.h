@@ -4,6 +4,7 @@
 #include "util.h"
 
 extern uint8_t G_MfrcTestFlag;
+extern uint32_t G_PiccUid;
 
 extern void (*MfrcService)(void);
 
