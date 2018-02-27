@@ -7,19 +7,19 @@ bool ControlDoor(bool RFIDstatus, bool BUTTONstatus, bool DOORstatus) {
   static DoorStates state = CHECK;
   bool result = DOORstatus;
   switch(state) {
-    case CHECK;
+  case CHECK:
       if(RFIDstatus == true || BUTTONstatus)
         state++;
       else
         break;
       break;
-    case DETECT;
-      if(DOORstatus = true) {
-        ServoPosition(closed);
+  case DETECT:
+      if(DOORstatus == true) {
+        //ServoPosition(closed);
         result = false;
       }
       else {
-        ServoPosition(open);
+        //ServoPosition(open);
         result = true;
       }
       state++;

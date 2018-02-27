@@ -1,6 +1,6 @@
 #include "ServiceCat.h"
 
-typedef enum { CHECK, UNLOCK, UNLOCK, OUTHOLD, INHOLD, OUTEXIT, INEXIT } CatStates;
+typedef enum { CHECK, UNLOCK, OUTHOLD, INHOLD, OUTEXIT, INEXIT } CatStates;
 
 bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoorCat, bool catDoorStatus) {
 
@@ -8,20 +8,20 @@ bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoo
   static CatStates nextState = CHECK;
   bool result = catDoorStatus;
 
-  switch(CatStates) {
-    case CHECK;
+  switch(state) {
+  case CHECK:
       if(outDoorCat == true || inDoorCat == true)
         nextState = UNLOCK;
       break;
 
-    case UNLOCK;
+  case UNLOCK:
       if(outDoorCat == true) {
-        ServoPosition(unlock inner bolt);
+        //ServoPosition(unlock inner bolt);
         nextState = INHOLD;
         result = true;
       }
       else if(inDoorCat == true) {
-        ServoPosition(unlock outer bolt);
+        //ServoPosition(unlock outer bolt);
         nextState = OUTHOLD;
         result = true;
       }
@@ -29,9 +29,9 @@ bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoo
         nextState = CHECK;
       break;
 
-    case INHOLD;
+  case INHOLD:
       if(outDoorCat == false && outDoorLED == false) {
-        ServoPosition(lock inner bolt);
+        //ServoPosition(lock inner bolt);
         result = false;
         nextState = CHECK;
       }
@@ -41,22 +41,22 @@ bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoo
         nextState = INEXIT;
       break;
 
-    case INEXIT;
+  case INEXIT:
       if(outDoorLED == false && inDoorLED == false && inDoorCat == false) {
-        ServoPosition(lock inner bolt);
+        //ServoPosition(lock inner bolt);
         result = false;
         nextState = CHECK;
       }
       else if(inDoorLED == false && outDoorLED == true)
         nextState = INHOLD;
       else if(inDoorLED == true || inDoorCat == true)
-        nextState == INEXIT;
+        nextState = INEXIT;
       break;
 
 
-    case OUTHOLD;
+  case OUTHOLD:
       if(inDoorCat == false && inDoorLED == false) {
-        ServoPosition(lock outer bolt);
+        //ServoPosition(lock outer bolt);
         result = false;
         nextState = CHECK;
       }
@@ -66,16 +66,16 @@ bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoo
         nextState = OUTEXIT;
       break;
 
-    case OUTEXIT;
-      if(inDoorLED == false && u=outDoorLED == false && outDoorCat == false) {
-        ServoPosition(lock outer bolt);
+  case OUTEXIT:
+      if(inDoorLED == false && outDoorLED == false && outDoorCat == false) {
+        //ServoPosition();
         result = false;
         nextState = CHECK;
       }
       else if(outDoorLED == false && inDoorLED == true)
         nextState = OUTHOLD;
       else if(outDoorLED == true || outDoorCat == true)
-        nextState == OUTEXIT;
+        nextState = OUTEXIT;
       break;
   }
   state = nextState;

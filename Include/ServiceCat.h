@@ -4,7 +4,7 @@
 #include "stdbool.h"
 
 
-bool ControlDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoorCat, bool catDoorStatus);
+bool ControlCatDoor(bool inDoorLED, bool outDoorLED, bool inDoorCat, bool outDoorCat, bool catDoorStatus);
 
 
 #endif
