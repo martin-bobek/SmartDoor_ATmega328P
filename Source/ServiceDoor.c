@@ -1,31 +1,30 @@
 #include "ServiceDoor.h"
 
-typedef enum { CHECK, DETECT, RESOLVE = 101 } DoorStates;
+typedef enum { CHECK, OPEN, CLOSE } DoorStates;
 
 
-bool ControlDoor(bool RFIDstatus, bool BUTTONstatus, bool DOORstatus) {
+bool ControlDoor(bool RFIDstatus, bool BUTTONstatus, bool DOORstatus, bool HFStatus) {
   static DoorStates state = CHECK;
+  static DoorSstates nextState = CHECK;
   bool result = DOORstatus;
   switch(state) {
   case CHECK:
-      if(RFIDstatus == true || BUTTONstatus)
-        state++;
-      else
-        break;
+      if(RFIDstatus == true || BUTTONstatus == true)
+        nextState = OPEN;
+      if(HFstatus == true)
+        nextState = CLOSE;
       break;
-  case DETECT:
-      if(DOORstatus == true) {
-        //ServoPosition(closed);
-        result = false;
-      }
-      else {
-        //ServoPosition(open);
-        result = true;
-      }
-      state++;
+  case OPEN:
+      //ServoPosition(open);
+      result = true;
+      nextState = CHECK;
+      break;
+  case CLOSE:
+      //ServoPosition(close);
+      result = false;
+      nexeState = CHECK;
       break;
   }
-  if(state > 1 && state <101)
-    state++;
+  state = nextState;
   return result;
 }
