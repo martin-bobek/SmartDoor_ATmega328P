@@ -15,6 +15,7 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 static void TimeThread(void);
+static void RfidThread(void);
 static char HexToAscii(uint8_t hex);
 
 /*
@@ -67,8 +68,6 @@ __attribute__ ((OS_main)) int main(void) {
   uint8_t prevTiny = 0;
   uint8_t tinySuccess = 1;
   char str[] = "  ";
-  uint8_t success = 1;
-  char idStr[] = "              ";
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -81,7 +80,8 @@ __attribute__ ((OS_main)) int main(void) {
     TimeThread();
     LockThread();
     PetDoorThread();
-
+    RfidThread();
+    
     if (G_TinyStatus != prevTiny) {
 		prevTiny = G_TinyStatus;
 		str[1] = HexToAscii(prevTiny);
@@ -90,34 +90,6 @@ __attribute__ ((OS_main)) int main(void) {
 	}
 	if (!tinySuccess)
 		tinySuccess = LcdWrite(LINE2_START, str);
-
-    if (success && G_MfrcTestFlag)
-      success = 0;
-    if (!success) {
-      switch (G_MfrcTestFlag) {
-      case 1:
-        success = LcdWrite(LINE2_START, "Init Done!");
-        break;
-      case 2:
-        success = LcdWrite(LINE2_START, "No Response!  ");
-        break;
-      case 3:
-        success = LcdWrite(LINE2_START, "PICC Detected!");
-        break;
-      case 4: 
-        success = LcdWrite(LINE2_START, "Bad UID!      ");
-        break;
-      case 5:
-        for (uint8_t i = 8; i-- > 0; ) {
-          idStr[i] = HexToAscii(G_PiccUid);
-          G_PiccUid >>= 4;
-        }
-        success = LcdWrite(LINE2_START, idStr);
-        break;
-      }
-      if (success)
-        G_MfrcTestFlag = 0;
-    }
     
     /*
     if (flashes == 0) {
@@ -142,7 +114,7 @@ __attribute__ ((OS_main)) int main(void) {
         PINB_Bit1 = 1;
       }
     }
-    */ 
+    */
     
     HEARTBEAT_OFF();
     SystemSleep();
@@ -179,6 +151,39 @@ static void TimeThread(void) {
   }
 }
 
+static void RfidThread(void) {
+  static uint8_t success = 1;
+  static char idStr[] = "              ";
+  
+  if (success && G_MfrcTestFlag)
+    success = 0;
+  if (!success) {
+    switch (G_MfrcTestFlag) {
+    case 1:
+      success = LcdWrite(LINE2_START, "Init Done!");
+      break;
+    case 2:
+      success = LcdWrite(LINE2_START, "No Response!  ");
+      break;
+    case 3:
+      success = LcdWrite(LINE2_START, "PICC Detected!");
+      break;
+    case 4: 
+      success = LcdWrite(LINE2_START, "Bad UID!      ");
+      break;
+    case 5:
+      for (uint8_t i = 8; i-- > 0; ) {
+        idStr[i] = HexToAscii(G_PiccUid);
+        G_PiccUid >>= 4;
+      }
+      success = LcdWrite(LINE2_START, idStr);
+      break;
+    }
+    if (success)
+      G_MfrcTestFlag = 0;
+  }
+}
+
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
   if (hex < 10)
@@ -189,7 +194,7 @@ static char HexToAscii(uint8_t hex) {
 inline static void SystemInit(void) {
   CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
   CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
-
+  
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
   PORTC = MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
@@ -198,8 +203,10 @@ inline static void SystemInit(void) {
   
   DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(HEARTBEAT_D);     // SERVO AND RTC SETUP
 
-  PORTB = MSK(SPI_RFID) | MSK(SPI_MOSI) | MSK(SPI_SCK);
-  DDRB = MSK(SPI_RFID) | MSK(SPI_MOSI) | MSK(SPI_SCK);               // GPIO SETUP
+
+  PORTB = MSK(SPI_RFID_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);
+  DDRB = MSK(SPI_RFID_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);               // GPIO SETUP
+
   // SPSR = MSK(SPI2X);
   SPCR = MSK(SPIE) | MSK(SPE) | MSK(MSTR) | MSK(SPR1) | MSK(SPR0);      // SPI SETUP
   

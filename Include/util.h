@@ -30,7 +30,10 @@ typedef struct {
 extern volatile uint8_t G_TinyStatus;
 
 // PORT B PINS
-
+#define SPI_RFID_B      2
+#define SPI_MISO_B      4
+#define SPI_MOSI_B      3
+#define SPI_SCK_B       5
 
 // PORT C PINS
 #define TWI_SDA_C       4

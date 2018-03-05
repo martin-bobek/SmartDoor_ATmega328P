@@ -29,49 +29,49 @@ static void Init(void) {
     cmdBuffer[0] = ADDRESS(WRITE, TMODE_REG);
     cmdBuffer[1] = 0x80;           // Timer automatically starts at the end of transmission in Transceive mode
     spiSize = 2; state++;
-  case 1: break;                // intentional fallthrough
+    break;
   case 2:
     cmdBuffer[0] = ADDRESS(WRITE, TPRESCALER_REG);
     cmdBuffer[1] = 0xA9;
     spiSize = 2; state++;
-  case 3: break;
+    break;
   case 4:
     cmdBuffer[0] = ADDRESS(WRITE, TRELOAD_REGH);
     cmdBuffer[1] = 0x03;
     spiSize = 2; state++;
-  case 5: break;
+    break;
   case 6:
     cmdBuffer[0] = ADDRESS(WRITE, TRELOAD_REGL);
     cmdBuffer[1] = 0xE8;        // sets the timer timeout to 25ms;
     spiSize = 2; state++;
-  case 7: break;
+    break;
   case 8:
     cmdBuffer[0] = ADDRESS(WRITE, TXASK_REG);
     cmdBuffer[1] = 0x40;        // sets ask modulation to 100%
     spiSize = 2; state++;
-  case 9: break;
+    break;
   case 10:
     cmdBuffer[0] = ADDRESS(WRITE, MODE_REG);
     cmdBuffer[1] = 0x3D;        // sets up the crc
     spiSize = 2; state++;
-  case 11: break;
+    break;
   case 12:
     cmdBuffer[0] = ADDRESS(WRITE, TXCONTROL_REG);
     cmdBuffer[1] = 0x83;          // enables rf on antenna pins
     spiSize = 2; state++;
-  case 13: break;
+    break;
   case 14:
     cmdBuffer[0] = ADDRESS(WRITE, COLL_REG);
     cmdBuffer[1] = 0;
     spiSize = 2; state++;
-  case 15: break;
+    break;
   case 16:
     MfrcService = Request;
     G_MfrcTestFlag = 1;
     return;
   }
   
-  if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))  // attempt to send current message. if success, move to next state
+  if (spiTransfer(SPI_RFID_B, &spiSize, cmdBuffer, 0))  // attempt to send current message. if success, move to next state
     state++;
 }
 static void Request(void) {
@@ -82,7 +82,7 @@ static void Request(void) {
     cmdBuffer[0] = ADDRESS(WRITE, COMMAND_REG);
     cmdBuffer[1] = TRANSCEIVE_CMD;
     spiSize = 2; state++;
-  case 1: break;
+    break;
   case 2:
     dataBuffer[0] = 0x26;               // REQuest command, Type A. Invites PICCs in state IDLE to go to READY and prepare for anticollision or selection. 7 bit frame.
     spiSize = 1; state++;
@@ -92,19 +92,19 @@ static void Request(void) {
     cmdBuffer[0] = ADDRESS(WRITE, COMIRQ_REG);
     cmdBuffer[1] = 0x7F;                // clear any pending interrupts
     spiSize = 2; state++;
-  case 4: break;
+    break;
   case 5:
     cmdBuffer[0] = ADDRESS(WRITE, BITFRAMING_REG);
     cmdBuffer[1] = 0x87;                // starts transmission, with short frame (7 bit)
     spiSize = 2; state++;
-  case 6: break;
+    break;
   case 7:
     state = 0;
     Receive();
     return;
   }
     
-  if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))
+  if (spiTransfer(SPI_RFID_B, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void AntiCollision(void) {
@@ -121,19 +121,19 @@ static void AntiCollision(void) {
     cmdBuffer[0] = ADDRESS(WRITE, COMIRQ_REG);
     cmdBuffer[1] = 0x7F;                // clear any pending interrupts
     spiSize = 2; state++;
-  case 2: break;
+    break;
   case 3:
     cmdBuffer[0] = ADDRESS(WRITE, BITFRAMING_REG);
     cmdBuffer[1] = 0x80;                // STARTS transfer. Assumes other bits were 0 in register
     spiSize = 2; state++;
-  case 4: break;
+    break;
   case 5:
     state = 0;
     Receive();
     return;
   }
   
-  if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))
+  if (spiTransfer(SPI_RFID_B, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void Timeout(void) {
@@ -225,7 +225,7 @@ static void Receive(void) {
       cmdBuffer[5] = 0;
       spiSize = 6; state++;
     }
-  case 9: break;
+    break;
   case 10: 
     if (spiSize != 0)
       return;
@@ -244,7 +244,7 @@ static void Receive(void) {
     return;
   }
   
-  if (spiTransfer(SPI_RFID, &spiSize, cmdBuffer))
+  if (spiTransfer(SPI_RFID_B, &spiSize, cmdBuffer, cmdBuffer + 1))
     state++;
 }
 static void FillFifo(void) {
@@ -260,14 +260,14 @@ static void FillFifo(void) {
     fifo_spiSize = 2; 
     state++;
   case 1:
-    if (spiTransfer(SPI_RFID, &fifo_spiSize, cmdBuffer))
+    if (spiTransfer(SPI_RFID_B, &fifo_spiSize, cmdBuffer, 0))
       state++;
     break;
   case 2:
     cmdBuffer[1] = ADDRESS(WRITE, FIFODATA_REG);
     spiSize++; state++;
   case 3:
-    if (spiTransfer(SPI_RFID, &spiSize, &cmdBuffer[1]))
+    if (spiTransfer(SPI_RFID_B, &spiSize, cmdBuffer + 1, 0))
       state++;
     break;
   case 4:
