@@ -18,6 +18,8 @@ typedef struct {
 #define REG(ADDR)		(*(volatile BITFIELD *)&ADDR)
 #define MSK(BIT)        (1u << (BIT))
 
+extern volatile uint8_t G_TinyStatus;
+
 // PORT B PINS
 
 

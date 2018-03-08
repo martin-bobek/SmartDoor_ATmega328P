@@ -15,10 +15,14 @@ static inline void SystemSleep(void);
 
 static void TimeThread(void);
 static void ServoThread(void);
+static char HexToAscii(uint8_t hex);
 
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
+  uint8_t prevTiny = 0;
+  uint8_t tinySuccess = 1;
+  char str[] = "  ";
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -30,6 +34,15 @@ __attribute__ ((OS_main)) int main(void) {
     ServoThread();
     TimeThread();
     
+    if (G_TinyStatus != prevTiny) {
+		prevTiny = G_TinyStatus;
+		str[1] = HexToAscii(prevTiny);
+		str[0] = HexToAscii(prevTiny >> 4);
+		tinySuccess = 0;
+	}
+	if (!tinySuccess)
+		tinySuccess = LcdWrite(LINE2_START, str);
+
     /*
     if (flashes == 0) {
       switch (G_TwiError) {
@@ -111,6 +124,13 @@ static void ServoThread(void) {
     ServoPosition(SERVO_2, servoPos);
   }
   servoTick++;
+}
+
+static char HexToAscii(uint8_t hex) {
+  hex &= 0xF;
+  if (hex < 10)
+    return hex + '0';
+  return hex - 10 + 'A';
 }
 
 inline static void SystemInit(void) {
