@@ -4,8 +4,8 @@
 #include "servo.h"
 #include "rtc.h"
 
-#define HEARTBEAT_ON()          (REG(PORTB).Bit0 = 1)
-#define HEARTBEAT_OFF()         (REG(PORTB).Bit0 = 0)
+#define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
+#define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -115,16 +115,15 @@ static void ServoThread(void) {
 
 inline static void SystemInit(void) {
   CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
-  CLKPR = 0;                            // increases processor speed to 8MHz
+  CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
   
-  DDRB = MSK(1) | MSK(0);               // GPIO SETUP
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
   PORTC = MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
   TWBR = 32;
   TWCR = MSK(TWINT) | TWI_ON;
   
-  DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D);     // SERVO AND RTC SETUP
+  DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(HEARTBEAT_D);     // SERVO AND RTC SETUP
   
   OCR2A = 0xf9;                         // SLEEP TIMER SETUP
   OCR2B = 0x7c;

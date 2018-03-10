@@ -24,7 +24,7 @@ void RtcService(void) {
     counter++;
     if (counter == DELAY) {
       counter = 0;
-      REG(PORTD).Bit4 = 1;                                           // pull CE high indicating start of transmission
+      REG(PORTD).Bit2 = 1;                                           // pull CE high indicating start of transmission
       state = WRITE;
       data = G_TimeWrite ? WRITE_BURST : READ_BURST;
     }
@@ -37,8 +37,8 @@ void RtcService(void) {
         data = G_Seconds;
         break;
       }
-      REG(DDRD).Bit2 = 0;                                            // Set IO to high impedence
-      REG(PORTD).Bit2 = 0;                                           // Turns off pullup on IO pin
+      REG(DDRD).Bit7 = 0;                                            // Set IO to high impedence
+      REG(PORTD).Bit7 = 0;                                           // Turns off pullup on IO pin
       state = READ;
       counter = 0;
       TCCR2A = MSK(COM2B1) | TCCR2A_SETUP;                      // set SCLK pin to clear on compare match
@@ -51,14 +51,14 @@ void RtcService(void) {
       data = G_Hours;
       break;
     case 73:
-      REG(PORTD).Bit2 = 0;                                           // Set IO low
-      REG(PORTD).Bit4 = 0;                                           // pull CE pin low, ending data transfer
+      REG(PORTD).Bit7 = 0;                                           // Set IO low
+      REG(PORTD).Bit2 = 0;                                           // pull CE pin low, ending data transfer
       G_TimeWrite = 0;
       state = IDLE;
       counter = DELAY - 1;
       return;
     }
-    REG(PORTD).Bit2 = (data & 1) ? 1 : 0;                            // write data to IO
+    REG(PORTD).Bit7 = (data & 1) ? 1 : 0;                            // write data to IO
     data >>= 1;
     TCCR2A = MSK(COM2B1) | TCCR2A_SETUP;                        // set SCLK pin to clear on compare match
     TCCR2B = MSK(FOC2B) | TCCR2B_SETUP;                         // force SCLK pin low
@@ -74,14 +74,14 @@ void RtcService(void) {
       minutes = data;
       break;
     case 24:
-      if (REG(PIND).Bit2)                                            // if IO line is high
+      if (REG(PIND).Bit7)                                            // if IO line is high
         data |= MSB;                                            // write a bit 7 to high
-      REG(PORTD).Bit4 = 0;                                           // pull CE low, terminating transfer
+      REG(PORTD).Bit2 = 0;                                           // pull CE low, terminating transfer
       counter = 0;
       state = STOP;   
       return;
     }
-    if (REG(PIND).Bit2)                                              // if IO line is high
+    if (REG(PIND).Bit7)                                              // if IO line is high
       data |= MSB;                                              // write a bit 7 to high
     data >>= 1;                                                 // shift incoming data one bit to the right
     TCCR2A = MSK(COM2B1) | MSK(COM2B0) | TCCR2A_SETUP;          // set SCLK pin to set on compare match
@@ -89,7 +89,7 @@ void RtcService(void) {
     TCCR2A = MSK(COM2B1) | TCCR2A_SETUP;                        // set SCLK pin to clear on compare match
     break;
   case STOP:
-    REG(DDRD).Bit2 = 1;                                              // set IO to output
+    REG(DDRD).Bit7 = 1;                                              // set IO to output
     if (!G_TimeWrite) {                                         
       G_Seconds = seconds & 0x7F;                               // Write new time to globals
       G_Minutes = minutes;
