@@ -4,6 +4,7 @@
 #include "servo.h"
 #include "rtc.h"
 #include "lock.h"
+#include "pet_door.h"
 
 #define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
 #define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
@@ -23,7 +24,6 @@ __attribute__ ((OS_main)) int main(void) {
   uint8_t prevTiny = 0;
   uint8_t tinySuccess = 1;
   char str[] = "  ";
-  uint16_t lockCounter = 0;
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -32,18 +32,9 @@ __attribute__ ((OS_main)) int main(void) {
     TwiService();
     LcdService();
     
-    //ServoThread();
     TimeThread();
     LockThread();
-    
-    lockCounter++;
-    if (lockCounter == 10000) {
-    	lockCounter = 0;
-    	G_LockPosition++;
-    	if (G_LockPosition == 4)
-    		G_LockPosition = 0;
-    }
-
+    PetDoorThread();
 
     if (G_TinyStatus != prevTiny) {
 		prevTiny = G_TinyStatus;
