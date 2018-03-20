@@ -6,8 +6,8 @@
 
 typedef enum { BEGIN = 0, S1_START = 0, S1_STOP = 2, S2_START = 5, S2_STOP = 7, LOOP = 20 } state_t;
 
-static uint8_t position_1 = NEUTRAL;
-static uint8_t position_2 = NEUTRAL;
+static uint8_t position_1 = MINIMUM;
+static uint8_t position_2 = MINIMUM;
 
 void ServoPosition(servo_t servo, uint8_t pos) {
   if (pos > MAX_POS)
@@ -19,6 +19,8 @@ void ServoPosition(servo_t servo, uint8_t pos) {
   case SERVO_2:
     position_2 = pos + MINIMUM;
     break;
+  case SERVO_3: break;
+  case SERVO_4: break;
   }
 }
 

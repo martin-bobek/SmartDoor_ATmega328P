@@ -3,6 +3,7 @@
 #include "lcd.h"
 #include "servo.h"
 #include "rtc.h"
+#include "lock.h"
 
 #define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
 #define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
@@ -14,7 +15,6 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 static void TimeThread(void);
-static void ServoThread(void);
 static char HexToAscii(uint8_t hex);
 
 __attribute__ ((OS_main)) int main(void) {
@@ -23,6 +23,7 @@ __attribute__ ((OS_main)) int main(void) {
   uint8_t prevTiny = 0;
   uint8_t tinySuccess = 1;
   char str[] = "  ";
+  uint16_t lockCounter = 0;
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -31,9 +32,19 @@ __attribute__ ((OS_main)) int main(void) {
     TwiService();
     LcdService();
     
-    ServoThread();
+    //ServoThread();
     TimeThread();
+    LockThread();
     
+    lockCounter++;
+    if (lockCounter == 10000) {
+    	lockCounter = 0;
+    	G_LockPosition++;
+    	if (G_LockPosition == 4)
+    		G_LockPosition = 0;
+    }
+
+
     if (G_TinyStatus != prevTiny) {
 		prevTiny = G_TinyStatus;
 		str[1] = HexToAscii(prevTiny);
@@ -101,29 +112,6 @@ static void TimeThread(void) {
   if (!lcdSuccess) {
     lcdSuccess = LcdWrite(0, time);
   }
-}
-
-static void ServoThread(void) {
-  static uint8_t servoPos = 63;
-  static uint8_t servoTick = 0;
-  static uint8_t servoDir = 0;
-  
-  if (servoTick == 20) {
-  servoTick = 0;
-  if (servoDir == 0) {
-    servoPos++;
-    if (servoPos == MAX_POS)
-      servoDir = 1;
-  }
-  else {
-    servoPos--;
-    if (servoPos == 0)
-      servoDir = 0;
-  }
-    ServoPosition(SERVO_1, servoPos);
-    ServoPosition(SERVO_2, servoPos);
-  }
-  servoTick++;
 }
 
 static char HexToAscii(uint8_t hex) {
