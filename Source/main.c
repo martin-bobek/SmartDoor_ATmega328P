@@ -65,9 +65,9 @@ static void RfidEcho(void) {
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
-  uint8_t prevTiny = 0;
-  uint8_t tinySuccess = 1;
-  char str[] = "  ";
+  //uint8_t prevTiny = 0;
+  //uint8_t tinySuccess = 1;
+  //char str[] = "  ";
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -82,6 +82,7 @@ __attribute__ ((OS_main)) int main(void) {
     PetDoorThread();
     RfidThread();
     
+    /*
     if (G_TinyStatus != prevTiny) {
 		prevTiny = G_TinyStatus;
 		str[1] = HexToAscii(prevTiny);
@@ -90,7 +91,7 @@ __attribute__ ((OS_main)) int main(void) {
 	}
 	if (!tinySuccess)
 		tinySuccess = LcdWrite(LINE2_START, str);
-    
+    */
     /*
     if (flashes == 0) {
       switch (G_TwiError) {
@@ -197,15 +198,15 @@ inline static void SystemInit(void) {
   
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
-  PORTC = MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
+  PORTC = MSK(SPI_RFID_C) | MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
+  DDRC = MSK(SPI_RFID_C);
   TWBR = 32;
   TWCR = MSK(TWINT) | TWI_ON;
   
   DDRD = MSK(SERVO_1_PIND) | MSK(SERVO_2_PIND) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(HEARTBEAT_D);     // SERVO AND RTC SETUP
 
-
-  PORTB = MSK(SPI_RFID_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);
-  DDRB = MSK(SPI_RFID_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);               // GPIO SETUP
+  PORTB = MSK(RFID_RESET_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);
+  DDRB = MSK(RFID_RESET_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B) | MSK(SERVO_3_PINB) | MSK(SERVO_4_PINB);               // GPIO SETUP
 
   // SPSR = MSK(SPI2X);
   SPCR = MSK(SPIE) | MSK(SPE) | MSK(MSTR) | MSK(SPR1) | MSK(SPR0);      // SPI SETUP
@@ -222,7 +223,7 @@ inline static void SystemInit(void) {
 inline static void SystemSleep(void) {
   if (G_u8SysTick != G_u8ExpectedSysTick)
   {
-    cli(); // Dissables interrupts
+    cli(); // Disables interrupts
     while(1);
   }
   

@@ -30,12 +30,15 @@ typedef struct {
 extern volatile uint8_t G_TinyStatus;
 
 // PORT B PINS
-#define SPI_RFID_B      2
-#define SPI_MISO_B      4
+#define RFID_RESET_B	0
+#define SERVO_3_PINB	1
+#define SERVO_4_PINB	2
 #define SPI_MOSI_B      3
+#define SPI_MISO_B      4
 #define SPI_SCK_B       5
 
 // PORT C PINS
+#define SPI_RFID_C      0
 #define TWI_SDA_C       4
 #define TWI_SCL_C       5
 #define RESET_C			6
@@ -55,4 +58,3 @@ extern volatile uint8_t G_TinyStatus;
 #define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
 
 #endif
-
