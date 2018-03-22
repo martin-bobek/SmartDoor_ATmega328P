@@ -8,6 +8,7 @@
 #include "pet_door.h"
 #include "mfrc.h"
 #include "id_check.h"
+#include "hall.h"
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -17,6 +18,7 @@ static inline void SystemSleep(void);
 
 static void TimeThread(void);
 static void RfidThread(void);
+static void HallThread(void);
 static char HexToAscii(uint8_t hex);
 
 __attribute__ ((OS_main)) int main(void) {
@@ -30,16 +32,51 @@ __attribute__ ((OS_main)) int main(void) {
     TwiService();
     LcdService();
     MfrcService();
-    
+    HallEffectService();
+
     TimeThread();
-    RfidThread();
+    //RfidThread();
     IdCheckThread();
     PetDoorThread();
     LockThread();
-    
+    HallThread();
+
     HEARTBEAT_OFF();
     SystemSleep();
   }
+}
+
+static void HallThread(void) {
+	static char message[] = "  -  -  ";
+	static uint8_t prevValue[3];
+	static uint8_t success = 1;
+	static uint8_t counter = 0;
+
+	counter++;
+	if (counter == 100) {
+		counter = 0;
+
+		if (prevValue[0] != G_HallValue[0]) {
+			prevValue[0] = G_HallValue[0];
+			message[1] = HexToAscii(prevValue[0]);
+			message[0] = HexToAscii(prevValue[0] >> 4);
+			success = 0;
+		}
+		if (prevValue[1] != G_HallValue[1]) {
+			prevValue[1] = G_HallValue[1];
+			message[4] = HexToAscii(prevValue[1]);
+			message[3] = HexToAscii(prevValue[1] >> 4);
+			success = 0;
+		}
+		if (prevValue[2] != G_HallValue[2]) {
+			prevValue[2] = G_HallValue[2];
+			message[7] = HexToAscii(prevValue[2]);
+			message[6] = HexToAscii(prevValue[2] >> 4);
+			success = 0;
+		}
+	}
+	if (!success)
+		success = LcdWrite(LINE2_START, message);
 }
 
 static void TimeThread(void) {
@@ -118,6 +155,10 @@ inline static void SystemInit(void) {
   
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
+  DIDR0 = MSK(ADC3D) | MSK(ADC2D) | MSK(ADC1D);		// ADC SETUP
+  ADMUX = ADMUX_SETUP;
+  ADCSRA = ADCSRA_SETUP;
+
   PORTC = MSK(SPI_RFID_C) | MSK(TWI_SDA_C) | MSK(TWI_SCL_C);              // TWI SETUP
   DDRC = MSK(SPI_RFID_C);
   TWBR = 32;

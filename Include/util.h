@@ -39,6 +39,9 @@ extern volatile uint8_t G_TinyStatus;
 
 // PORT C PINS
 #define SPI_RFID_C      0
+#define HALL_PET_C		1
+#define HALL_DOOR_C		2
+#define HALL_MAIL_C		3
 #define TWI_SDA_C       4
 #define TWI_SCL_C       5
 #define RESET_C			6
