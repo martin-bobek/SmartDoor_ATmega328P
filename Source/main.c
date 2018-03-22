@@ -7,6 +7,7 @@
 #include "lock.h"
 #include "pet_door.h"
 #include "mfrc.h"
+#include "id_check.h"
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -18,56 +19,9 @@ static void TimeThread(void);
 static void RfidThread(void);
 static char HexToAscii(uint8_t hex);
 
-/*
-static void RfidEcho(void);
-
-#define MSB     (1 << 7)
-#define ADDR(LOC)    (MSB | ((LOC) << 1))
-static void RfidEcho(void) {
-  static uint8_t state = 0;
-  static uint8_t data[3] = { ADDR(1), ADDR(2), 0 };
-  static char msg[5];
-  static uint8_t ready = 250;
-  
-  switch (state) {
-  case 0:
-    ready--;
-    if (ready == 3) {
-      data[0] = ADDR(1);
-      data[1] = ADDR(2);
-      data[2] = 0;
-      state++;
-    }
-    break;
-  case 1:
-    spiTransfer(SPI_RFID, &ready, data);
-    state++;
-    break;
-  case 2:
-    if (ready == 0) {
-      msg[1] = HexToAscii(data[1]);
-      msg[0] = HexToAscii(data[1] >> 4);
-      msg[3] = HexToAscii(data[2]);
-      msg[2] = HexToAscii(data[2] >> 4);
-      state++;
-    }
-    break;
-  case 3:
-    if (LcdWrite(0, msg)) {
-      ready = 250;
-      state = 0;
-    }
-    break;
-  }
-}
-*/
-
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
-  //uint8_t prevTiny = 0;
-  //uint8_t tinySuccess = 1;
-  //char str[] = "  ";
   while (1) {
     HEARTBEAT_ON(); 
     
@@ -78,44 +32,10 @@ __attribute__ ((OS_main)) int main(void) {
     MfrcService();
     
     TimeThread();
-    LockThread();
-    PetDoorThread();
     RfidThread();
-    
-    /*
-    if (G_TinyStatus != prevTiny) {
-		prevTiny = G_TinyStatus;
-		str[1] = HexToAscii(prevTiny);
-		str[0] = HexToAscii(prevTiny >> 4);
-		tinySuccess = 0;
-	}
-	if (!tinySuccess)
-		tinySuccess = LcdWrite(LINE2_START, str);
-    */
-    /*
-    if (flashes == 0) {
-      switch (G_TwiError) {
-      case TWI_STARTFAIL:
-        flashes = 2;
-        break;
-      case TWI_ADDRESSFAIL:
-        flashes = 4;
-        break;
-      case TWI_DATAFAIL:
-        flashes = 6;
-        break;
-      }
-    }
-    
-    if (flashes != 0) {
-      led_tick++;
-      if (led_tick == 50) {
-        led_tick = 0;
-        flashes--;
-        PINB_Bit1 = 1;
-      }
-    }
-    */
+    IdCheckThread();
+    PetDoorThread();
+    LockThread();
     
     HEARTBEAT_OFF();
     SystemSleep();

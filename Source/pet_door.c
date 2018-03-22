@@ -1,3 +1,4 @@
+#include "id_check.h"
 #include "pet_door.h"
 #include "lock.h"
 
@@ -13,7 +14,7 @@ void PetDoorThread(void) {
 
 	switch (state) {
 	case CLOSED:
-		if (G_TinyStatus & INSIDE_MSK) {
+		if ((G_TinyStatus & INSIDE_MSK) && (G_RfidDetected & PET_DOOR_RFID)) {
 			G_LockPosition |= IN_PET_LOCK;
 			state = IN_OPEN;
 		}
