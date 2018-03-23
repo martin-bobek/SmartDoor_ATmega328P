@@ -17,7 +17,7 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 static void TimeThread(void);
-static void RfidThread(void);
+//static void RfidThread(void);
 static void HallThread(void);
 static char HexToAscii(uint8_t hex);
 
@@ -25,14 +25,15 @@ __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
   while (1) {
-    HEARTBEAT_ON(); 
+    HEARTBEAT_ON();
     
     RtcService();
     ServoService();
     TwiService();
     LcdService();
     MfrcService();
-    HallEffectService();
+    AdcService();
+    HallService();
 
     TimeThread();
     //RfidThread();
@@ -47,8 +48,8 @@ __attribute__ ((OS_main)) int main(void) {
 }
 
 static void HallThread(void) {
-	static char message[] = "  -  -  ";
-	static uint8_t prevValue[3];
+	static char message[] = "  -  -  :   ";
+	static uint8_t prevValue[4];
 	static uint8_t success = 1;
 	static uint8_t counter = 0;
 
@@ -72,6 +73,13 @@ static void HallThread(void) {
 			prevValue[2] = G_HallValue[2];
 			message[7] = HexToAscii(prevValue[2]);
 			message[6] = HexToAscii(prevValue[2] >> 4);
+			success = 0;
+		}
+		if (prevValue[3] != G_DoorClosed) {
+			prevValue[3] = G_DoorClosed;
+			message[9] = (prevValue[3] & MAIN_CLOSED) ? '1' : '0';
+			message[10] = (prevValue[3] & PET_CLOSED) ? '1' : '0';
+			message[11] = (prevValue[3] & MAIL_CLOSED) ? '1' : '0';
 			success = 0;
 		}
 	}
@@ -109,6 +117,7 @@ static void TimeThread(void) {
   }
 }
 
+/*
 static void RfidThread(void) {
   static uint8_t success = 1;
   static char idStr[] = "              ";
@@ -141,6 +150,7 @@ static void RfidThread(void) {
       G_MfrcTestFlag = 0;
   }
 }
+*/
 
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
