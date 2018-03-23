@@ -1,9 +1,8 @@
 #include "mfrc.h"
 #include "mfrc_reg.h"
-#include "spi.h"
 
-uint8_t G_MfrcTestFlag;
-uint32_t G_PiccUid;
+uint8_t G_MfrcTestFlag[NUM_RFID];
+uint32_t G_PiccUid[NUM_RFID];
 
 static void Init(void);
 static void Request(void);
@@ -13,8 +12,9 @@ static void FillFifo(void);
 static void Receive(void);
 void (*MfrcService)(void) = Timeout;
 static void (*ReturnPtr)(void) = Init;
+static spi_device_t device = DOOR_SPI;
 
-static uint16_t timeoutCounter = 1000;
+static uint8_t timeoutCounter = 100;
 static uint8_t spiSize;
 
 static uint8_t buffer[11];
@@ -66,12 +66,16 @@ static void Init(void) {
     spiSize = 2; state++;
     break;
   case 16:
-    MfrcService = Request;
-    G_MfrcTestFlag = 1;
+	device++;
+	if (device == NUM_RFID) {
+      device = 0;
+      MfrcService = Request;
+	}
+    G_MfrcTestFlag[device] = 1;
     return;
   }
   
-  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))  // attempt to send current message. if success, move to next state
+  if (spiTransfer(device, &spiSize, cmdBuffer, 0))  // attempt to send current message. if success, move to next state
     state++;
 }
 static void Request(void) {
@@ -104,7 +108,7 @@ static void Request(void) {
     return;
   }
     
-  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))
+  if (spiTransfer(device, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void AntiCollision(void) {
@@ -133,12 +137,15 @@ static void AntiCollision(void) {
     return;
   }
   
-  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))
+  if (spiTransfer(device, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void Timeout(void) {
   if (timeoutCounter == 0) {
-    timeoutCounter = 500;
+    timeoutCounter = 250;
+    device++;
+    if (device == NUM_RFID)
+      device = 0;
     MfrcService = ReturnPtr;
     return;
   }
@@ -150,7 +157,7 @@ static void Receive(void) {
   switch (state) {
   case 2:
     if (cmdBuffer[1] & 0x11) { // timeout or idle interrupt
-      G_MfrcTestFlag = 2;
+      G_MfrcTestFlag[device] = 2;
       state = 0;
       ReturnPtr = Request;
       MfrcService = Timeout;
@@ -163,6 +170,7 @@ static void Receive(void) {
       break;
     }
     state = 0;
+    // no break
   case 0:               // intentional fallthrough
     ReturnPtr = MfrcService;
     MfrcService = Receive;
@@ -173,7 +181,7 @@ static void Receive(void) {
   case 4:
     if ((cmdBuffer[1] & 0x13) ||  // General errors
         (cmdBuffer[1] & 0x08)) {  // Collision error
-      G_MfrcTestFlag = 2;
+      G_MfrcTestFlag[device] = 2;
       state = 0;
       ReturnPtr = Request;
       MfrcService = Timeout;
@@ -185,7 +193,7 @@ static void Receive(void) {
     break;
   case 6:
     if (cmdBuffer[1] & 0x07) {  // only a partial byte received
-      G_MfrcTestFlag = 2;
+      G_MfrcTestFlag[device] = 2;
       state = 0;
       ReturnPtr = Request;
       MfrcService = Timeout;
@@ -201,11 +209,11 @@ static void Receive(void) {
       if (cmdBuffer[1] != 2) { // must receive only 2 bytes on a request
         ReturnPtr = Request;
         MfrcService = Timeout;
-        G_MfrcTestFlag = 2;
+        G_MfrcTestFlag[device] = 2;
       }
       else {
         MfrcService = AntiCollision;
-        G_MfrcTestFlag = 3;
+        G_MfrcTestFlag[device] = 3;
       }
       return;
     }
@@ -213,7 +221,7 @@ static void Receive(void) {
       state = 0;
       ReturnPtr = Request;
       MfrcService = Timeout;
-      G_MfrcTestFlag = 2;
+      G_MfrcTestFlag[device] = 2;
       return;
     }
     else {
@@ -233,18 +241,18 @@ static void Receive(void) {
     ReturnPtr = Request;
     MfrcService = Timeout;
     if ((cmdBuffer[1] ^ cmdBuffer[2] ^ cmdBuffer[3] ^ cmdBuffer[4]) != cmdBuffer[5])
-      G_MfrcTestFlag = 4;
+      G_MfrcTestFlag[device] = 4;
     else {
-      G_PiccUid = cmdBuffer[4];
-      G_PiccUid |= (uint32_t)cmdBuffer[3] << 8;
-      G_PiccUid |= (uint32_t)cmdBuffer[2] << 16;
-      G_PiccUid |= (uint32_t)cmdBuffer[1] << 24;
-      G_MfrcTestFlag = 5;
+      G_PiccUid[device] = cmdBuffer[4];
+      G_PiccUid[device] |= (uint32_t)cmdBuffer[3] << 8;
+      G_PiccUid[device] |= (uint32_t)cmdBuffer[2] << 16;
+      G_PiccUid[device] |= (uint32_t)cmdBuffer[1] << 24;
+      G_MfrcTestFlag[device] = 5;
     }
     return;
   }
   
-  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, cmdBuffer + 1))
+  if (spiTransfer(device, &spiSize, cmdBuffer, cmdBuffer + 1))
     state++;
 }
 static void FillFifo(void) {
@@ -259,15 +267,17 @@ static void FillFifo(void) {
     cmdBuffer[1] = 0x80;                                // clears and resets the fifo
     fifo_spiSize = 2; 
     state++;
+    // no break
   case 1:
-    if (spiTransfer(PET_RFID_C, &fifo_spiSize, cmdBuffer, 0))
+    if (spiTransfer(device, &fifo_spiSize, cmdBuffer, 0))
       state++;
     break;
   case 2:
     cmdBuffer[1] = ADDRESS(WRITE, FIFODATA_REG);
     spiSize++; state++;
+    // no break
   case 3:
-    if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer + 1, 0))
+    if (spiTransfer(device, &spiSize, cmdBuffer + 1, 0))
       state++;
     break;
   case 4:

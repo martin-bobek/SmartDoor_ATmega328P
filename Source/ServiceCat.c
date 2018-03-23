@@ -2,6 +2,8 @@
 
 typedef enum { CHECK, UNLOCK, HOLD, OUTEXIT, INEXIT } CatStates;
 
+#if 0
+
 bool ControlCatDoor(bool proxIn, bool proxOut, bool RF, bool inTime, int catDoorStatus) {
 
   static CatStates state = CHECK;
@@ -76,3 +78,4 @@ bool ControlCatDoor(bool proxIn, bool proxOut, bool RF, bool inTime, int catDoor
 
   return result;
 }
+#endif

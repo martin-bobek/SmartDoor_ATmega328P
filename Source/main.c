@@ -16,9 +16,10 @@ static uint8_t G_u8ExpectedSysTick = 0;
 static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
-static void TimeThread(void);
-//static void RfidThread(void);
-static void HallThread(void);
+//static void TimeThread(void);
+static void RfidThread(spi_device_t device);
+static void ServoThread(void);
+//static void HallThread(void);
 static char HexToAscii(uint8_t hex);
 
 __attribute__ ((OS_main)) int main(void) {
@@ -35,18 +36,20 @@ __attribute__ ((OS_main)) int main(void) {
     AdcService();
     HallService();
 
-    TimeThread();
-    //RfidThread();
+    //TimeThread();
+    ServoThread();
+    RfidThread(PET_SPI);
+    RfidThread(DOOR_SPI);
     IdCheckThread();
     PetDoorThread();
     LockThread();
-    HallThread();
+    //HallThread();
 
     HEARTBEAT_OFF();
     SystemSleep();
   }
 }
-
+/*
 static void HallThread(void) {
 	static char message[] = "  -  -  :   ";
 	static uint8_t prevValue[4];
@@ -116,41 +119,66 @@ static void TimeThread(void) {
     lcdSuccess = LcdWrite(0, time);
   }
 }
+*/
 
-/*
-static void RfidThread(void) {
-  static uint8_t success = 1;
-  static char idStr[] = "              ";
+static void ServoThread(void) {
+  static uint8_t servoPos = 63;
+  static uint8_t servoTick = 0;
+  static uint8_t servoDir = 0;
+
+  if (servoTick == 20) {
+  servoTick = 0;
+  if (servoDir == 0) {
+    servoPos++;
+    if (servoPos == MAX_POS)
+      servoDir = 1;
+  }
+  else {
+    servoPos--;
+    if (servoPos == 0)
+      servoDir = 0;
+  }
+    ServoPosition(SERVO_3, servoPos);
+    ServoPosition(SERVO_4, servoPos);
+  }
+  servoTick++;
+}
+
+static void RfidThread(spi_device_t device) {
+  static const uint8_t lcdAddress[NUM_RFID] = { 0, LINE2_START };
+  static uint8_t success[NUM_RFID] = { 1, 1 };
+  static char idStr[NUM_RFID][15] = { "              ", "              " };
   
-  if (success && G_MfrcTestFlag)
-    success = 0;
-  if (!success) {
-    switch (G_MfrcTestFlag) {
+  if (success[device] && G_MfrcTestFlag[device])
+    success[device] = 0;
+  if (!success[device]) {
+    switch (G_MfrcTestFlag[device]) {
     case 1:
-      success = LcdWrite(LINE2_START, "Init Done!");
+      success[device] = LcdWrite(lcdAddress[device], "Init Done!");
       break;
     case 2:
-      success = LcdWrite(LINE2_START, "No Response!  ");
+      success[device] = LcdWrite(lcdAddress[device], "No Response!  ");
       break;
     case 3:
-      success = LcdWrite(LINE2_START, "PICC Detected!");
+      success[device] = LcdWrite(lcdAddress[device], "PICC Detected!");
       break;
     case 4: 
-      success = LcdWrite(LINE2_START, "Bad UID!      ");
+      success[device] = LcdWrite(lcdAddress[device], "Bad UID!      ");
       break;
-    case 5:
+    case 5: {
+      uint32_t piccUid = G_PiccUid[device];
       for (uint8_t i = 8; i-- > 0; ) {
-        idStr[i] = HexToAscii(G_PiccUid);
-        G_PiccUid >>= 4;
+        idStr[device][i] = HexToAscii(piccUid);
+        piccUid >>= 4;
       }
-      success = LcdWrite(LINE2_START, idStr);
+      success[device] = LcdWrite(lcdAddress[device], idStr[device]);
       break;
     }
-    if (success)
-      G_MfrcTestFlag = 0;
+    }
+    if (success[device])
+      G_MfrcTestFlag[device] = 0;
   }
 }
-*/
 
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;

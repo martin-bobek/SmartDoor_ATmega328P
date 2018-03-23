@@ -1,7 +1,7 @@
 #include "spi.h"
 
-#define SS_LOW(PIN)     (CAT(REG(PORTC).Bit, PIN) = 0)
-#define SS_HIGH(PIN)    (CAT(REG(PORTC).Bit, PIN) = 1)
+#define SS_LOW(PRT, PIN)     (CAT(REG(PORT ## PRT).Bit, PIN) = 0)
+#define SS_HIGH(PRT, PIN)    (CAT(REG(PORT ## PRT).Bit, PIN) = 1)
 
 typedef enum { READY, START, TRANSCEIVE } state_t;
 
@@ -21,9 +21,12 @@ uint8_t spiTransfer(spi_device_t device, uint8_t *size_done, uint8_t send[], uin
   bytes_remaining = size_done;
   ss_pin = device;
   switch (ss_pin) {
-  case PET_RFID_C:
-    SS_LOW(PET_RFID_C);
+  case PET_SPI:
+    SS_LOW(C, PET_RFID_C);
     break;
+  case DOOR_SPI:
+	SS_LOW(D, DOOR_RFID_D);
+	break;
   default:
     return 0;
   }
@@ -43,8 +46,11 @@ ISR(SPI_STC_vect) {
   if (*bytes_remaining == 0) {
     state = READY;
     switch (ss_pin) {
-    case PET_RFID_C:
-      SS_HIGH(PET_RFID_C);
+    case PET_SPI:
+      SS_HIGH(C, PET_RFID_C);
+      break;
+    case DOOR_SPI:
+      SS_HIGH(D, DOOR_RFID_D);
       break;
     }
     return;

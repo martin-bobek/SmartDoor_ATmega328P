@@ -2,6 +2,7 @@
 
 typedef enum { CHECK, OPEN, CLOSE } DoorStates;
 
+#if 0
 
 bool ControlDoor(bool RFIDstatus, bool BUTTONstatus, bool DOORstatus, bool HFStatus) {
   static DoorStates state = CHECK;
@@ -28,3 +29,5 @@ bool ControlDoor(bool RFIDstatus, bool BUTTONstatus, bool DOORstatus, bool HFSta
   state = nextState;
   return result;
 }
+
+#endif
