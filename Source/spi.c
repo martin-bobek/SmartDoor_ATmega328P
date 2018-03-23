@@ -21,8 +21,8 @@ uint8_t spiTransfer(spi_device_t device, uint8_t *size_done, uint8_t send[], uin
   bytes_remaining = size_done;
   ss_pin = device;
   switch (ss_pin) {
-  case SPI_RFID_C:
-    SS_LOW(SPI_RFID_C);
+  case PET_RFID_C:
+    SS_LOW(PET_RFID_C);
     break;
   default:
     return 0;
@@ -43,8 +43,8 @@ ISR(SPI_STC_vect) {
   if (*bytes_remaining == 0) {
     state = READY;
     switch (ss_pin) {
-    case SPI_RFID_C:
-      SS_HIGH(SPI_RFID_C);
+    case PET_RFID_C:
+      SS_HIGH(PET_RFID_C);
       break;
     }
     return;

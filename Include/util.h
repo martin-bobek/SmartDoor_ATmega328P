@@ -31,14 +31,16 @@ extern volatile uint8_t G_TinyStatus;
 
 // PORT B PINS
 #define RFID_RESET_B	0
-#define SERVO_3_PINB	1
-#define SERVO_4_PINB	2
+#define SERVO_3_B		1
+#define SERVO_4_B		2
 #define SPI_MOSI_B      3
 #define SPI_MISO_B      4
 #define SPI_SCK_B       5
+#define XTAL1_B			6
+#define XTAL2_B			7
 
 // PORT C PINS
-#define SPI_RFID_C      0
+#define PET_RFID_C      0
 #define HALL_PET_C		1
 #define HALL_DOOR_C		2
 #define HALL_MAIL_C		3
@@ -47,11 +49,13 @@ extern volatile uint8_t G_TinyStatus;
 #define RESET_C			6
 
 // PORT D PINS
+#define ALARM_D			0
+#define DOOR_RFID_D		1
 #define RTC_CE_D        2
 #define RTC_SCLK_D      3
 #define HEARTBEAT_D		4
-#define SERVO_2_PIND    5
-#define SERVO_1_PIND    6
+#define SERVO_2_D    	5
+#define SERVO_1_D    	6
 #define RTC_IO_D        7
 
 #define TCCR2A_SETUP    MSK(WGM21)

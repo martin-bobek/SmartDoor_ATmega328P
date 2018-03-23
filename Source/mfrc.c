@@ -71,7 +71,7 @@ static void Init(void) {
     return;
   }
   
-  if (spiTransfer(SPI_RFID_C, &spiSize, cmdBuffer, 0))  // attempt to send current message. if success, move to next state
+  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))  // attempt to send current message. if success, move to next state
     state++;
 }
 static void Request(void) {
@@ -104,7 +104,7 @@ static void Request(void) {
     return;
   }
     
-  if (spiTransfer(SPI_RFID_C, &spiSize, cmdBuffer, 0))
+  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void AntiCollision(void) {
@@ -133,7 +133,7 @@ static void AntiCollision(void) {
     return;
   }
   
-  if (spiTransfer(SPI_RFID_C, &spiSize, cmdBuffer, 0))
+  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, 0))
     state++;
 }
 static void Timeout(void) {
@@ -244,7 +244,7 @@ static void Receive(void) {
     return;
   }
   
-  if (spiTransfer(SPI_RFID_C, &spiSize, cmdBuffer, cmdBuffer + 1))
+  if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer, cmdBuffer + 1))
     state++;
 }
 static void FillFifo(void) {
@@ -260,14 +260,14 @@ static void FillFifo(void) {
     fifo_spiSize = 2; 
     state++;
   case 1:
-    if (spiTransfer(SPI_RFID_C, &fifo_spiSize, cmdBuffer, 0))
+    if (spiTransfer(PET_RFID_C, &fifo_spiSize, cmdBuffer, 0))
       state++;
     break;
   case 2:
     cmdBuffer[1] = ADDRESS(WRITE, FIFODATA_REG);
     spiSize++; state++;
   case 3:
-    if (spiTransfer(SPI_RFID_C, &spiSize, cmdBuffer + 1, 0))
+    if (spiTransfer(PET_RFID_C, &spiSize, cmdBuffer + 1, 0))
       state++;
     break;
   case 4:
