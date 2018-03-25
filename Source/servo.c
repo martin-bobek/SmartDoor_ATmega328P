@@ -21,10 +21,10 @@ void ServoPosition(servo_t servo, uint8_t pos) {
   case SERVO_PETOUT:
     position_2 = pos + MINIMUM;
     break;
-  case SERVO_3:
+  case SERVO_MAIL:
 	position_3 = pos + MINIMUM;
 	break;
-  case SERVO_4:
+  case SERVO_DOOR:
 	position_4 = pos + MINIMUM;
 	break;
   }

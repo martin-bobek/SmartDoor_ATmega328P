@@ -72,6 +72,7 @@ static void Init(void) {
       MfrcService = Request;
 	}
     G_MfrcTestFlag[device] = 1;
+    state = 0;
     return;
   }
   

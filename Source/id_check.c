@@ -2,7 +2,7 @@
 #include "mfrc.h"
 
 #define RFID_TIMEOUT		1000
-#define DOORID				1
+#define DOORID				0x880434C7
 #define PETID				0x880434C7
 
 uint8_t G_RfidDetected;

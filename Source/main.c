@@ -9,6 +9,8 @@
 #include "mfrc.h"
 #include "id_check.h"
 #include "hall.h"
+#include "buttons.h"
+#include "display.h"
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -17,16 +19,34 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 //static void TimeThread(void);
-static void RfidThread(spi_device_t device);
-static void ServoThread(void);
+//static void RfidThread(spi_device_t device);
+//static void ServoThread(void);
 //static void HallThread(void);
-static char HexToAscii(uint8_t hex);
+//static char HexToAscii(uint8_t hex);
+
+/*
+static void TimeThread(void) {
+  static char time[] = "  :  :  ";
+  static uint8_t prevSec = 0xFF;
+  static uint8_t lcdSuccess = 1;
+  static uint16_t ticksToChange = 0;
+
+  if (ticksToChange <= 5000)
+    ticksToChange++;
+  if (ticksToChange == 5000) {
+    G_Seconds = (3 << 4) | 1;
+    G_Minutes = (5 << 4) | 7;
+    G_Hours = (1 << 4) | 2;
+    G_TimeWrite = CHANGE_FLAG;
+  }
+}
+*/
 
 __attribute__ ((OS_main)) int main(void) {
   SystemInit();
   
   while (1) {
-    HEARTBEAT_ON();
+    //HEARTBEAT_ON();
     
     RtcService();
     ServoService();
@@ -35,17 +55,19 @@ __attribute__ ((OS_main)) int main(void) {
     MfrcService();
     AdcService();
     HallService();
+    ButtonService();
 
     //TimeThread();
-    ServoThread();
-    RfidThread(PET_SPI);
-    RfidThread(DOOR_SPI);
+    //ServoThread();
+    //RfidThread(PET_SPI);
+    //RfidThread(DOOR_SPI);
     IdCheckThread();
     PetDoorThread();
     LockThread();
+    DisplayThread();
     //HallThread();
 
-    HEARTBEAT_OFF();
+    //HEARTBEAT_OFF();
     SystemSleep();
   }
 }
@@ -90,37 +112,6 @@ static void HallThread(void) {
 		success = LcdWrite(LINE2_START, message);
 }
 
-static void TimeThread(void) {
-  static char time[] = "  :  :  ";
-  static uint8_t prevSec = 0xFF;
-  static uint8_t lcdSuccess = 1;
-  static uint16_t ticksToChange = 0;
-  
-  if (ticksToChange <= 5000)
-    ticksToChange++;
-  if (ticksToChange == 5000) {
-    G_Seconds = (3 << 4) | 1;
-    G_Minutes = (5 << 4) | 7;
-    G_Hours = (1 << 4) | 2;
-    G_TimeWrite = CHANGE_FLAG;
-  }
-  
-  if (prevSec != G_Seconds) {
-    prevSec = G_Seconds;
-    time[0] = (G_Hours >> 4) + '0';
-    time[1] = (G_Hours & 0xF) + '0';
-    time[3] = (G_Minutes >> 4) + '0';
-    time[4] = (G_Minutes & 0xF) + '0';
-    time[6] = (G_Seconds >> 4) + '0';
-    time[7] = (G_Seconds & 0xF) + '0';
-    lcdSuccess = 0;
-  }    
-  if (!lcdSuccess) {
-    lcdSuccess = LcdWrite(0, time);
-  }
-}
-*/
-
 static void ServoThread(void) {
   static uint8_t servoPos = 63;
   static uint8_t servoTick = 0;
@@ -138,10 +129,17 @@ static void ServoThread(void) {
     if (servoPos == 0)
       servoDir = 0;
   }
-    ServoPosition(SERVO_3, servoPos);
-    ServoPosition(SERVO_4, servoPos);
+    ServoPosition(SERVO_MAIL, servoPos);
+    ServoPosition(SERVO_DOOR, servoPos);
   }
   servoTick++;
+}
+
+static char HexToAscii(uint8_t hex) {
+  hex &= 0xF;
+  if (hex < 10)
+    return hex + '0';
+  return hex - 10 + 'A';
 }
 
 static void RfidThread(spi_device_t device) {
@@ -179,14 +177,7 @@ static void RfidThread(spi_device_t device) {
       G_MfrcTestFlag[device] = 0;
   }
 }
-
-static char HexToAscii(uint8_t hex) {
-  hex &= 0xF;
-  if (hex < 10)
-    return hex + '0';
-  return hex - 10 + 'A';
-}
-
+*/
 inline static void SystemInit(void) {
   CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
   CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
@@ -221,10 +212,10 @@ inline static void SystemInit(void) {
 }
 
 inline static void SystemSleep(void) {
-  if (G_u8SysTick != G_u8ExpectedSysTick)
-  {
-    cli(); // Disables interrupts
-    while(1);
+  if (G_u8SysTick != G_u8ExpectedSysTick) {
+	HEARTBEAT_ON();
+    //cli(); // Disables interrupts
+    //while(1);
   }
   
   while (G_u8SysTick == G_u8ExpectedSysTick)

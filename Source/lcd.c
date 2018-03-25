@@ -4,6 +4,8 @@ static void Init(void);
 static void Ready(void);
 static void SendAddress(void);
 static void SendStr(void);
+static void EnterEditMode(void);
+static void EnterWriteMode(void);
 
 #define ENABLE_FLAG                     MSK(0)
 #define NIBBLE_FLAG                     MSK(1)
@@ -17,7 +19,9 @@ static void SendStr(void);
 
 #define NORMALIZE                       0x30
 #define MODE_NIBBLE                     0x28
-#define LCD_ON                          0x0c
+#define LCD_ON                          0x0C
+#define LCD_ONCURSOR					0x0D
+
 #define INC_NOSHIFT                     0x06
 
 #define LINE1_END                       0x28
@@ -25,6 +29,9 @@ static void SendStr(void);
 
 void (*LcdService)(void) = Init;
 
+typedef enum { WRITE_MODE, INIT_EDIT, EDITING } state_t;
+
+static state_t mode = WRITE_MODE;
 static uint8_t address;
 static char *str;
 static uint8_t index = 0;
@@ -32,7 +39,7 @@ static uint8_t nibbleEnable = 0;
 
 static void Init(void) {
   uint8_t success = 0;
-  const uint8_t startCommands[] = { MODE_NIBBLE, LCD_ON, INC_NOSHIFT };
+  static const uint8_t startCommands[] = { MODE_NIBBLE, LCD_ON, INC_NOSHIFT };
   while (index < 8) {
     switch (index) {
     case 0:
@@ -71,6 +78,26 @@ static void Init(void) {
 static void Ready(void) {
   
 }
+static void EnterEditMode(void) {
+	while (nibbleEnable < 4) {
+		if (!TwiSend(LCD_ADDR, CMD_BYTE(nibbleEnable, LCD_ONCURSOR)))
+			return;
+		nibbleEnable++;
+	}
+	nibbleEnable = 0;
+	mode = EDITING;
+	LcdService = Ready;
+}
+static void EnterWriteMode(void) {
+	while (nibbleEnable < 4) {
+		if (!TwiSend(LCD_ADDR, CMD_BYTE(nibbleEnable, LCD_ON)))
+			return;
+		nibbleEnable++;
+	}
+	nibbleEnable = 0;
+	mode = WRITE_MODE;
+	LcdService = Ready;
+}
 static void SendAddress(void) {
   while (nibbleEnable < 4) {
     if (!TwiSend(LCD_ADDR, CMD_BYTE(nibbleEnable, MSK(7) | address)))
@@ -78,8 +105,19 @@ static void SendAddress(void) {
     nibbleEnable++;
   }
   nibbleEnable = 0;
-  LcdService = SendStr;
-  SendStr();
+  switch (mode) {
+    case WRITE_MODE:
+      LcdService = SendStr;
+      SendStr();
+  	  break;
+    case INIT_EDIT:
+  	  LcdService = EnterEditMode;
+  	  EnterEditMode();
+  	  break;
+    case EDITING:
+      LcdService = Ready;
+      break;
+    }
 }
 static void SendStr(void) {
   while ((str[index] != '\0') && (address + index != LINE1_END) && (address + index != LINE2_END)) {
@@ -92,11 +130,16 @@ static void SendStr(void) {
     index++;
   }
   index = 0;
-  LcdService = Ready;
+  if (mode != WRITE_MODE) {
+	  LcdService = SendAddress;
+	  SendAddress();
+  }
+  else
+	  LcdService = Ready;
 }
 
 uint8_t LcdWrite(uint8_t startAddr, char message[]) {
-  if (LcdService != Ready)
+  if (LcdService != Ready || mode != WRITE_MODE)
     return 0;
   if ((startAddr >= LINE1_END && startAddr < LINE2_START) || startAddr >= LINE2_END)
     return 0;
@@ -105,4 +148,35 @@ uint8_t LcdWrite(uint8_t startAddr, char message[]) {
   LcdService = SendAddress;
   SendAddress();
   return 1;
+}
+
+uint8_t LcdStartEdit(uint8_t charAddress) {
+	if (LcdService != Ready)
+		return 0;
+	if ((charAddress >= LINE1_END && charAddress < LINE2_START) || charAddress >= LINE2_END)
+	    return 0;
+	mode = INIT_EDIT;
+	address = charAddress;
+	LcdService = SendAddress;
+	SendAddress();
+	return 1;
+}
+
+uint8_t LcdEdit(char newChar) {
+	static char character[2] = " ";
+	if (LcdService != Ready)
+		return 0;
+	*character = newChar;
+	str = character;
+	LcdService = SendStr;
+	SendStr();
+	return 1;
+}
+
+uint8_t LcdFinishEdit(void) {
+	if (LcdService != Ready)
+		return 0;
+	LcdService = EnterWriteMode;
+	EnterWriteMode();
+	return 1;
 }

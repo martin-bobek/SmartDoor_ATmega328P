@@ -3,7 +3,7 @@
 
 #include "util.h"
 
-typedef enum { SERVO_PETIN, SERVO_PETOUT, SERVO_3, SERVO_4 } servo_t;
+typedef enum { SERVO_PETIN, SERVO_PETOUT, SERVO_MAIL, SERVO_DOOR } servo_t;
 
 #define SERVO_1_D            6
 #define SERVO_2_D            5
