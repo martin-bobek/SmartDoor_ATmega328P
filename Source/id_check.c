@@ -14,7 +14,8 @@ void IdCheckThread(void) {
 		G_RfidDetected |= MAIN_DOOR_RFID;
 		mainTimer = RFID_TIMEOUT;
 		G_PiccUid[DOOR_SPI] = 0;
-	} else if (G_PiccUid[PET_SPI] == PETID) {
+	}
+	if (G_PiccUid[PET_SPI] == PETID) {
 		G_RfidDetected |= PET_DOOR_RFID;
 		petTimer = RFID_TIMEOUT;
 		G_PiccUid[PET_SPI] = 0;

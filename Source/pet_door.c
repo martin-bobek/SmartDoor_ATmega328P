@@ -2,8 +2,8 @@
 #include "pet_door.h"
 #include "lock.h"
 
-#define INSIDE_MSK			(TINY_IR1 | TINY_IR2)
-#define OUTSIDE_MSK			(TINY_IR3 | TINY_IR4)
+#define OUTSIDE_MSK			(TINY_IR1 | TINY_IR2)
+#define INSIDE_MSK			(TINY_IR3 | TINY_IR4)
 #define CLOSE_DELAY			5000
 
 typedef enum { CLOSED, IN_OPEN, OUT_OPEN } state_t;

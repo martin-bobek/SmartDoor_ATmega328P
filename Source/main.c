@@ -6,6 +6,7 @@
 #include "rtc.h"
 #include "lock.h"
 #include "pet_door.h"
+#include "main_door.h"
 #include "mfrc.h"
 #include "id_check.h"
 #include "hall.h"
@@ -19,10 +20,10 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 //static void TimeThread(void);
-//static void RfidThread(spi_device_t device);
+static void RfidThread(spi_device_t device);
 //static void ServoThread(void);
 //static void HallThread(void);
-//static char HexToAscii(uint8_t hex);
+static char HexToAscii(uint8_t hex);
 
 /*
 static void TimeThread(void) {
@@ -65,6 +66,7 @@ __attribute__ ((OS_main)) int main(void) {
     PetDoorThread();
     LockThread();
     DisplayThread();
+    MainDoorThread();
     //HallThread();
 
     //HEARTBEAT_OFF();
@@ -134,7 +136,8 @@ static void ServoThread(void) {
   }
   servoTick++;
 }
-
+*/
+/*
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
   if (hex < 10)

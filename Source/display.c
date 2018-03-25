@@ -1,6 +1,7 @@
 #include "display.h"
 #include "lcd.h"
 #include "rtc.h"
+#include "main_door.h"
 #include "buttons.h"
 
 static void InitMainMenu(void);
@@ -51,6 +52,11 @@ static void MainMenu(void) {
 	if (lcdSuccess && (G_ButtonPressed & RIGHT_BUTTON)) {
 		prevSec = 0xFF;
 		DisplayThread = InitTimeSetup;
+	}
+
+	if (G_ButtonPressed & LEFT_BUTTON) {
+		G_ButtonPressed &= ~LEFT_BUTTON;
+		G_UnlockRequest = 1;
 	}
 }
 
