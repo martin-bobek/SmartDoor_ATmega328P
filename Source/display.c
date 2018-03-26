@@ -4,6 +4,7 @@
 #include "main_door.h"
 #include "buttons.h"
 #include "times.h"
+#include "id_check.h"
 
 static void InitMainMenu(void);
 static void MainMenu(void);
@@ -12,17 +13,24 @@ static void TimeSetup(void);
 static void InitUnlockSetup(void);
 static void InitLockSetup(void);
 static void ExitTimeSetup(void);
+static void InitRfidSetup(void);
+static void RfidSetup(void);
+static void AddTag(void);
 
 //static char HexToAscii(uint8_t hex);
 
 void (*DisplayThread)(void) = InitMainMenu;
 
-typedef enum { TIME, UNLOCK, LOCK } setup_t;
+#define TIME		0
+#define UNLOCK		1
+#define LOCK		2
+#define PET			0
+#define DOOR 		1
 
 static uint8_t lcdSuccess = 0;
 static uint8_t state = 0;
 static char time[] = "  :  :  ";
-static setup_t timeSetup;
+static uint8_t setupMode;
 
 static void InitMainMenu(void) {
 	switch (state) {
@@ -76,7 +84,7 @@ static void InitTimeSetup(void) {
 	case 1:
 		if (LcdStartEdit(4)) {
 			state = 0;
-			timeSetup = TIME;
+			setupMode = TIME;
 			lcdSuccess = 0;
 			DisplayThread = TimeSetup;
 			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
@@ -110,7 +118,7 @@ static void InitUnlockSetup(void) {
 	case 4:
 		if (LcdStartEdit(10)) {
 			state = 0;
-			timeSetup = UNLOCK;
+			setupMode = UNLOCK;
 			DisplayThread = TimeSetup;
 			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
 		}
@@ -142,7 +150,7 @@ static void InitLockSetup(void) {
 	case 4:
 		if (LcdStartEdit(10)) {
 			state = 0;
-			timeSetup = LOCK;
+			setupMode = LOCK;
 			DisplayThread = TimeSetup;
 			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
 		}
@@ -151,7 +159,7 @@ static void InitLockSetup(void) {
 
 static void ExitTimeSetup(void) {
 	if (LcdFinishEdit()) {
-		DisplayThread = InitMainMenu;
+		DisplayThread = InitRfidSetup;
 		time[5] = ':';
 		lcdSuccess = 1;
 	}
@@ -171,7 +179,7 @@ static void TimeSetup(void) {
 				max = '9';
 			break;
 		case 5:
-			if (timeSetup == UNLOCK) {
+			if (setupMode == UNLOCK) {
 				max = '2';
 				state = 0;
 				G_UnlockHour = ((time[0] - '0') << 4) | (time[1] - '0');
@@ -179,7 +187,7 @@ static void TimeSetup(void) {
 				G_WriteTime |= WRITE_UNLOCK;
 				DisplayThread = InitLockSetup;
 				return;
-			} else if (timeSetup == LOCK) {
+			} else if (setupMode == LOCK) {
 				max = '2';
 				state = 0;
 				G_LockHour = ((time[0] - '0') << 4) | (time[1] - '0');
@@ -219,9 +227,9 @@ static void TimeSetup(void) {
 	else if (!lcdSuccess && (G_ButtonPressed & RIGHT_BUTTON)) {
 		max = '2';
 		state = 0;
-		if (timeSetup == TIME)
+		if (setupMode == TIME)
 			DisplayThread = InitUnlockSetup;
-		else if (timeSetup == UNLOCK)
+		else if (setupMode == UNLOCK)
 			DisplayThread = InitLockSetup;
 		else
 			DisplayThread = ExitTimeSetup;
@@ -231,11 +239,91 @@ static void TimeSetup(void) {
 	if (lcdSuccess == 1)
 		lcdSuccess = LcdEdit(time[state]) ? 0 : 1;
 	else if (lcdSuccess == 2) {
-		lcdSuccess = LcdStartEdit((timeSetup == TIME) ? (state + 4) : (state + 10)) ? 0 : 2;
+		lcdSuccess = LcdStartEdit((setupMode == TIME) ? (state + 4) : (state + 10)) ? 0 : 2;
 		if (!lcdSuccess && time[state] > max) {
 			time[state] = max;
 			lcdSuccess = 1;
 		}
+	}
+}
+
+static void InitRfidSetup(void) {
+	switch (state) {
+	case 0:
+		if (LcdWrite(1, "  RFID SETUP  "))
+			state++;
+		break;
+	case 1:
+		if (LcdWrite(LINE2_START, "DOOR  PET   EXIT")) {
+			state = 0;
+			DisplayThread = RfidSetup;
+			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
+		}
+		break;
+	}
+}
+
+static void RfidSetup(void) {
+	switch (state) {
+	case 1:
+		if (LcdWrite(1, "   SCAN TAG  "))
+			state++;
+		return;
+	case 2:
+		if (LcdWrite(LINE2_START, "DELETE    CANCEL")) {
+			state = 0;
+			DisplayThread = AddTag;
+			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON);
+		}
+		return;
+	}
+
+
+	if (G_ButtonPressed & LEFT_BUTTON) {
+		state = 1;
+		G_AddId = MAIN_DOOR_RFID;
+	}
+	else if (G_ButtonPressed & MIDDLE_BUTTON) {
+		state = 1;
+		G_AddId = PET_DOOR_RFID;
+	}
+	else if (G_ButtonPressed & RIGHT_BUTTON) {
+		DisplayThread = InitMainMenu;
+	}
+}
+
+static void AddTag(void) {
+	switch (state) {
+	case 1:
+		if (LcdWrite(3, "RFID SETUP"))
+			state = 4;
+		return;
+	case 2:
+		if (LcdWrite(3, "RFID ADDED"))
+			state = 4;
+		return;
+	case 3:
+		if (LcdWrite(1, "RFIDs DELETED"))
+			state = 4;
+		return;
+	case 4:
+		if (LcdWrite(LINE2_START, "DOOR  PET   EXIT")) {
+			state = 0;
+			DisplayThread = RfidSetup;
+			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
+		}
+		return;
+	}
+
+	if (G_AddId == 0)
+		state = 2;
+	else if (G_ButtonPressed & LEFT_BUTTON) {
+		G_AddId = G_AddId << 2;
+		state = 3;
+	}
+	else if (G_ButtonPressed & RIGHT_BUTTON) {
+		G_AddId = 0;
+		state = 1;
 	}
 }
 
