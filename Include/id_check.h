@@ -13,5 +13,7 @@ extern uint8_t G_RfidDetected;
 extern uint8_t G_AddId;
 
 void IdCheckThread(void);
+void IdLogService(void);
+void InitId(void);
 
 #endif

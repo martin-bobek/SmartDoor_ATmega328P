@@ -23,8 +23,8 @@ static inline void SystemSleep(void);
 //static void TimeThread(void);
 //static void RfidThread(spi_device_t device);
 //static void ServoThread(void);
-//static void HallThread(void);
-//static char HexToAscii(uint8_t hex);
+static void HallThread(void);
+static char HexToAscii(uint8_t hex);
 
 /*
 static void TimeThread(void) {
@@ -58,6 +58,7 @@ __attribute__ ((OS_main)) int main(void) {
     AdcService();
     HallService();
     ButtonService();
+    IdLogService();
 
     TimesThread();
     //ServoThread();
@@ -66,15 +67,15 @@ __attribute__ ((OS_main)) int main(void) {
     IdCheckThread();
     PetDoorThread();
     LockThread();
-    DisplayThread();
+    //DisplayThread();
     MainDoorThread();
-    //HallThread();
+    HallThread();
 
     //HEARTBEAT_OFF();
     SystemSleep();
   }
 }
-/*
+
 static void HallThread(void) {
 	static char message[] = "  -  -  :   ";
 	static uint8_t prevValue[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
@@ -115,6 +116,7 @@ static void HallThread(void) {
 		success = LcdWrite(LINE2_START, message);
 }
 
+/*
 static void ServoThread(void) {
   static uint8_t servoPos = 63;
   static uint8_t servoTick = 0;
@@ -137,6 +139,7 @@ static void ServoThread(void) {
   }
   servoTick++;
 }
+*/
 
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
@@ -145,6 +148,7 @@ static char HexToAscii(uint8_t hex) {
   return hex - 10 + 'A';
 }
 
+/*
 static void RfidThread(spi_device_t device) {
   static const uint8_t lcdAddress[NUM_RFID] = { 0, LINE2_START };
   static uint8_t success[NUM_RFID] = { 1, 1 };
@@ -186,6 +190,7 @@ inline static void SystemInit(void) {
   CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
   
   InitTimes();
+  InitId();
 
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
