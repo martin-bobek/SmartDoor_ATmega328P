@@ -8,7 +8,7 @@
 uint8_t G_Seconds;
 uint8_t G_Minutes;
 uint8_t G_Hours;
-uint8_t G_TimeWrite;
+uint8_t G_RtcWrite;
 
 typedef enum { IDLE, WRITE, READ, STOP } state_t;
 
@@ -26,14 +26,14 @@ void RtcService(void) {
       counter = 0;
       REG(PORTD).Bit2 = 1;                                           // pull CE high indicating start of transmission
       state = WRITE;
-      data = G_TimeWrite ? WRITE_BURST : READ_BURST;
+      data = G_RtcWrite ? WRITE_BURST : READ_BURST;
     }
     break;
   case WRITE:
     counter++;
     switch (counter) {
     case 9:
-      if (G_TimeWrite) {
+      if (G_RtcWrite) {
         data = G_Seconds;
         break;
       }
@@ -53,7 +53,7 @@ void RtcService(void) {
     case 73:
       REG(PORTD).Bit7 = 0;                                           // Set IO low
       REG(PORTD).Bit2 = 0;                                           // pull CE pin low, ending data transfer
-      G_TimeWrite = 0;
+      G_RtcWrite = 0;
       state = IDLE;
       counter = DELAY - 1;
       return;
@@ -90,7 +90,7 @@ void RtcService(void) {
     break;
   case STOP:
     REG(DDRD).Bit7 = 1;                                              // set IO to output
-    if (!G_TimeWrite) {                                         
+    if (!G_RtcWrite) {                                         
       G_Seconds = seconds & 0x7F;                               // Write new time to globals
       G_Minutes = minutes;
       G_Hours = data & 0x3F;

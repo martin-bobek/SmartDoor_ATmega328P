@@ -1,6 +1,7 @@
 #include "id_check.h"
 #include "pet_door.h"
 #include "lock.h"
+#include "times.h"
 
 #define OUTSIDE_MSK			(TINY_IR1 | TINY_IR2)
 #define INSIDE_MSK			(TINY_IR3 | TINY_IR4)
@@ -18,7 +19,7 @@ void PetDoorThread(void) {
 			G_LockPosition |= IN_PET_LOCK;
 			state = IN_OPEN;
 		}
-		else if (G_TinyStatus & OUTSIDE_MSK) {
+		else if ((G_TinyStatus & OUTSIDE_MSK) && G_OpenTime) {
 			G_LockPosition |= OUT_PET_LOCK;
 			state = OUT_OPEN;
 		}

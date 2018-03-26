@@ -1,6 +1,6 @@
 #include "hall.h"
 
-#define THRESHOLD			0x70
+#define THRESHOLD			0x90
 #define FILTER_PERIOD		20
 
 #define MAIN_MUX			MSK(MUX1)

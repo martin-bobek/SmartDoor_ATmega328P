@@ -3,19 +3,26 @@
 #include "rtc.h"
 #include "main_door.h"
 #include "buttons.h"
+#include "times.h"
 
 static void InitMainMenu(void);
 static void MainMenu(void);
 static void InitTimeSetup(void);
 static void TimeSetup(void);
+static void InitUnlockSetup(void);
+static void InitLockSetup(void);
 static void ExitTimeSetup(void);
+
 //static char HexToAscii(uint8_t hex);
 
 void (*DisplayThread)(void) = InitMainMenu;
 
+typedef enum { TIME, UNLOCK, LOCK } setup_t;
+
 static uint8_t lcdSuccess = 0;
 static uint8_t state = 0;
 static char time[] = "  :  :  ";
+static setup_t timeSetup;
 
 static void InitMainMenu(void) {
 	switch (state) {
@@ -63,17 +70,90 @@ static void MainMenu(void) {
 static void InitTimeSetup(void) {
 	switch (state) {
 	case 0:
-		if (LcdWrite(LINE2_START, "NEXT   UP   EXIT"))
+		if (LcdWrite(LINE2_START, "NEXT   ^   SETUP"))
 			state++;
 		break;
 	case 1:
 		if (LcdStartEdit(4)) {
 			state = 0;
+			timeSetup = TIME;
 			lcdSuccess = 0;
 			DisplayThread = TimeSetup;
 			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
 		}
 		break;
+	}
+}
+
+static void InitUnlockSetup(void) {
+	switch (state) {
+	case 0:
+		if (LcdFinishEdit())
+			state++;
+		break;
+	case 1:
+		time[0] = (G_UnlockHour >> 4) + '0';
+		time[1] = (G_UnlockHour & 0xF) + '0';
+		time[3] = (G_UnlockMinute >> 4) + '0';
+		time[4] = (G_UnlockMinute & 0xF) + '0';
+		time[5] = '\0';
+		state++;
+		break;
+	case 2:
+		if (LcdWrite(0, " UNLOCK   "))
+			state++;
+		break;
+	case 3:
+		if (LcdWrite(10, time))
+			state++;
+		break;
+	case 4:
+		if (LcdStartEdit(10)) {
+			state = 0;
+			timeSetup = UNLOCK;
+			DisplayThread = TimeSetup;
+			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
+		}
+		break;
+	}
+}
+
+static void InitLockSetup(void) {
+	switch (state) {
+	case 0:
+		if (LcdFinishEdit())
+			state++;
+		break;
+	case 1:
+		time[0] = (G_LockHour >> 4) + '0';
+		time[1] = (G_LockHour & 0xF) + '0';
+		time[3] = (G_LockMinute >> 4) + '0';
+		time[4] = (G_LockMinute & 0xF) + '0';
+		state++;
+		break;
+	case 2:
+		if (LcdWrite(0, " LOCK   "))
+			state++;
+		break;
+	case 3:
+		if (LcdWrite(10, time))
+			state++;
+		break;
+	case 4:
+		if (LcdStartEdit(10)) {
+			state = 0;
+			timeSetup = LOCK;
+			DisplayThread = TimeSetup;
+			G_ButtonPressed &= ~(LEFT_BUTTON | MIDDLE_BUTTON | RIGHT_BUTTON);
+		}
+	}
+}
+
+static void ExitTimeSetup(void) {
+	if (LcdFinishEdit()) {
+		DisplayThread = InitMainMenu;
+		time[5] = ':';
+		lcdSuccess = 1;
 	}
 }
 
@@ -90,8 +170,26 @@ static void TimeSetup(void) {
 			else
 				max = '9';
 			break;
-		case 2:
 		case 5:
+			if (timeSetup == UNLOCK) {
+				max = '2';
+				state = 0;
+				G_UnlockHour = ((time[0] - '0') << 4) | (time[1] - '0');
+				G_UnlockMinute = ((time[3] - '0') << 4) | (time[4] - '0');
+				G_WriteTime |= WRITE_UNLOCK;
+				DisplayThread = InitLockSetup;
+				return;
+			} else if (timeSetup == LOCK) {
+				max = '2';
+				state = 0;
+				G_LockHour = ((time[0] - '0') << 4) | (time[1] - '0');
+				G_LockMinute = ((time[3] - '0') << 4) | (time[4] - '0');
+				G_WriteTime |= WRITE_LOCK;
+				DisplayThread = ExitTimeSetup;
+				return;
+			}
+			// no break
+		case 2:
 			state++;
 			max = '5';
 			break;
@@ -100,8 +198,13 @@ static void TimeSetup(void) {
 			max = '9';
 			break;
 		case 8:
+			G_Hours = ((time[0] - '0') << 4) | (time[1] - '0');
+			G_Minutes = ((time[3] - '0') << 4) | (time[4] - '0');
+			G_Seconds = ((time[6] - '0') << 4) | (time[7] - '0');
+			G_RtcWrite = CHANGE_FLAG;
 			max = '2';
-			DisplayThread = ExitTimeSetup;
+			state = 0;
+			DisplayThread = InitUnlockSetup;
 			return;
 		}
 		lcdSuccess = 2;
@@ -114,35 +217,25 @@ static void TimeSetup(void) {
 		lcdSuccess = 1;
 	}
 	else if (!lcdSuccess && (G_ButtonPressed & RIGHT_BUTTON)) {
-		DisplayThread = ExitTimeSetup;
 		max = '2';
+		state = 0;
+		if (timeSetup == TIME)
+			DisplayThread = InitUnlockSetup;
+		else if (timeSetup == UNLOCK)
+			DisplayThread = InitLockSetup;
+		else
+			DisplayThread = ExitTimeSetup;
 		return;
 	}
 
 	if (lcdSuccess == 1)
 		lcdSuccess = LcdEdit(time[state]) ? 0 : 1;
 	else if (lcdSuccess == 2) {
-		lcdSuccess = LcdStartEdit(state + 4) ? 0 : 2;
+		lcdSuccess = LcdStartEdit((timeSetup == TIME) ? (state + 4) : (state + 10)) ? 0 : 2;
 		if (!lcdSuccess && time[state] > max) {
 			time[state] = max;
 			lcdSuccess = 1;
 		}
-	}
-}
-
-static void ExitTimeSetup(void) {
-	if (state == 8) {
-		G_Hours = ((time[0] - '0') << 4) | (time[1] - '0');
-		G_Minutes = ((time[3] - '0') << 4) | (time[4] - '0');
-		G_Seconds = ((time[6] - '0') << 4) | (time[7] - '0');
-	    G_TimeWrite = CHANGE_FLAG;
-	    state = 0;
-	}
-
-	if (LcdFinishEdit()) {
-		lcdSuccess = 1;
-		state = 0;
-		DisplayThread = InitMainMenu;
 	}
 }
 

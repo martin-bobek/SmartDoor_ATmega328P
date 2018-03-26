@@ -11,6 +11,7 @@
 #include "id_check.h"
 #include "hall.h"
 #include "buttons.h"
+#include "times.h"
 #include "display.h"
 
 static volatile uint8_t G_u8SysTick = 0;
@@ -20,9 +21,9 @@ static inline void SystemInit(void);
 static inline void SystemSleep(void);
 
 //static void TimeThread(void);
-static void RfidThread(spi_device_t device);
+//static void RfidThread(spi_device_t device);
 //static void ServoThread(void);
-//static void HallThread(void);
+static void HallThread(void);
 static char HexToAscii(uint8_t hex);
 
 /*
@@ -58,25 +59,25 @@ __attribute__ ((OS_main)) int main(void) {
     HallService();
     ButtonService();
 
-    //TimeThread();
+    TimesThread();
     //ServoThread();
     //RfidThread(PET_SPI);
     //RfidThread(DOOR_SPI);
     IdCheckThread();
     PetDoorThread();
     LockThread();
-    DisplayThread();
+    //DisplayThread();
     MainDoorThread();
-    //HallThread();
+    HallThread();
 
     //HEARTBEAT_OFF();
     SystemSleep();
   }
 }
-/*
+
 static void HallThread(void) {
 	static char message[] = "  -  -  :   ";
-	static uint8_t prevValue[4];
+	static uint8_t prevValue[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
 	static uint8_t success = 1;
 	static uint8_t counter = 0;
 
@@ -113,7 +114,7 @@ static void HallThread(void) {
 	if (!success)
 		success = LcdWrite(LINE2_START, message);
 }
-
+/*
 static void ServoThread(void) {
   static uint8_t servoPos = 63;
   static uint8_t servoTick = 0;
@@ -137,14 +138,13 @@ static void ServoThread(void) {
   servoTick++;
 }
 */
-/*
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
   if (hex < 10)
     return hex + '0';
   return hex - 10 + 'A';
 }
-
+/*
 static void RfidThread(spi_device_t device) {
   static const uint8_t lcdAddress[NUM_RFID] = { 0, LINE2_START };
   static uint8_t success[NUM_RFID] = { 1, 1 };
@@ -185,6 +185,8 @@ inline static void SystemInit(void) {
   CLKPR = MSK(CLKPCE);                  // CLOCK SETUP
   CLKPR = MSK(CLKPS0);                  // increases processor speed from 2 to 8MHz
   
+  InitTimes();
+
   SMCR = MSK(SE);                       // ENABLE SLEEP
   
   DIDR0 = MSK(ADC3D) | MSK(ADC2D) | MSK(ADC1D);		// ADC SETUP

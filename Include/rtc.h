@@ -10,7 +10,7 @@
 extern uint8_t G_Seconds;
 extern uint8_t G_Minutes;
 extern uint8_t G_Hours;
-extern uint8_t G_TimeWrite;
+extern uint8_t G_RtcWrite;
 
 void RtcService(void);
 
