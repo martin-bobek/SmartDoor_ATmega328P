@@ -7,4 +7,6 @@ void ButtonService(void) {
 	static uint8_t released;
 	G_ButtonPressed |= 0xF & G_TinyStatus & released;
 	released = ~G_TinyStatus;
+	if (ALARM_ISON())
+		G_ButtonPressed = 0;
 }

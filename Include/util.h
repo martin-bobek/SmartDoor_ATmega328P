@@ -61,7 +61,10 @@ extern volatile uint8_t G_TinyStatus;
 #define TCCR2A_SETUP    MSK(WGM21)
 #define TCCR2B_SETUP    (MSK(CS21) | MSK(CS20))
 
-#define UNLOCKED_ON()          (REG(PORTD).Bit4 = 1)
-#define UNLOCKED_OFF()         (REG(PORTD).Bit4 = 0)
+#define ALARM_ON()				(REG(DDRD).Bit0 = 0)
+#define ALARM_OFF()				(REG(DDRD).Bit0 = 1)
+#define ALARM_ISON()			(REG(DDRD).Bit0 == 0)
+#define UNLOCKED_ON()          	(REG(PORTD).Bit4 = 1)
+#define UNLOCKED_OFF()         	(REG(PORTD).Bit4 = 0)
 
 #endif
