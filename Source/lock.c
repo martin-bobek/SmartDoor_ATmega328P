@@ -29,7 +29,7 @@ static void adjust(void) {
 	static uint8_t positions[4];
 
 	timer++;
-	if (timer == 20) {
+	if (timer == 10) {
 		timer = 0;
 		if (G_LockPosition & MSK(currentService)) {	// moving to larger values
 			if (positions[currentService] == MAX_POS) {

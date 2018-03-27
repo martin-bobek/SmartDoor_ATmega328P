@@ -53,7 +53,7 @@ extern volatile uint8_t G_TinyStatus;
 #define DOOR_RFID_D		1
 #define RTC_CE_D        2
 #define RTC_SCLK_D      3
-#define HEARTBEAT_D		4
+#define UNLOCKED_D		4
 #define SERVO_2_D    	5
 #define SERVO_1_D    	6
 #define RTC_IO_D        7
@@ -61,7 +61,7 @@ extern volatile uint8_t G_TinyStatus;
 #define TCCR2A_SETUP    MSK(WGM21)
 #define TCCR2B_SETUP    (MSK(CS21) | MSK(CS20))
 
-#define HEARTBEAT_ON()          (REG(PORTD).Bit4 = 1)
-#define HEARTBEAT_OFF()         (REG(PORTD).Bit4 = 0)
+#define UNLOCKED_ON()          (REG(PORTD).Bit4 = 1)
+#define UNLOCKED_OFF()         (REG(PORTD).Bit4 = 0)
 
 #endif

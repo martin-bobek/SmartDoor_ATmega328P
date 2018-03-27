@@ -23,8 +23,8 @@ static inline void SystemSleep(void);
 //static void TimeThread(void);
 //static void RfidThread(spi_device_t device);
 //static void ServoThread(void);
-static void HallThread(void);
-static char HexToAscii(uint8_t hex);
+//static void HallThread(void);
+//static char HexToAscii(uint8_t hex);
 
 /*
 static void TimeThread(void) {
@@ -67,15 +67,15 @@ __attribute__ ((OS_main)) int main(void) {
     IdCheckThread();
     PetDoorThread();
     LockThread();
-    //DisplayThread();
+    DisplayThread();
     MainDoorThread();
-    HallThread();
+    //HallThread();
 
     //HEARTBEAT_OFF();
     SystemSleep();
   }
 }
-
+/*
 static void HallThread(void) {
 	static char message[] = "  -  -  :   ";
 	static uint8_t prevValue[4] = { 0xFF, 0xFF, 0xFF, 0xFF };
@@ -115,7 +115,7 @@ static void HallThread(void) {
 	if (!success)
 		success = LcdWrite(LINE2_START, message);
 }
-
+*/
 /*
 static void ServoThread(void) {
   static uint8_t servoPos = 63;
@@ -140,14 +140,14 @@ static void ServoThread(void) {
   servoTick++;
 }
 */
-
+/*
 static char HexToAscii(uint8_t hex) {
   hex &= 0xF;
   if (hex < 10)
     return hex + '0';
   return hex - 10 + 'A';
 }
-
+*/
 /*
 static void RfidThread(spi_device_t device) {
   static const uint8_t lcdAddress[NUM_RFID] = { 0, LINE2_START };
@@ -204,7 +204,7 @@ inline static void SystemInit(void) {
   TWCR = MSK(TWINT) | TWI_ON;
   
   PORTD = MSK(DOOR_RFID_D);
-  DDRD = MSK(ALARM_D) | MSK(DOOR_RFID_D) | MSK(SERVO_1_D) | MSK(SERVO_2_D) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(HEARTBEAT_D);     // SERVO AND RTC SETUP
+  DDRD = MSK(ALARM_D) | MSK(DOOR_RFID_D) | MSK(SERVO_1_D) | MSK(SERVO_2_D) | MSK(RTC_CE_D) | MSK(RTC_SCLK_D) | MSK(RTC_IO_D) | MSK(UNLOCKED_D);     // SERVO AND RTC SETUP
 
   PORTB = MSK(RFID_RESET_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B);
   DDRB = MSK(RFID_RESET_B) | MSK(SPI_MOSI_B) | MSK(SPI_SCK_B) | MSK(SERVO_3_B) | MSK(SERVO_4_B);               // GPIO SETUP
@@ -223,7 +223,7 @@ inline static void SystemInit(void) {
 
 inline static void SystemSleep(void) {
   if (G_u8SysTick != G_u8ExpectedSysTick) {
-	HEARTBEAT_ON();
+	//HEARTBEAT_ON();
     //cli(); // Disables interrupts
     //while(1);
   }

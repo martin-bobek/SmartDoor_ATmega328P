@@ -2,10 +2,11 @@
 #include "pet_door.h"
 #include "lock.h"
 #include "times.h"
+#include "hall.h"
 
 #define OUTSIDE_MSK			(TINY_IR1 | TINY_IR2)
 #define INSIDE_MSK			(TINY_IR3 | TINY_IR4)
-#define CLOSE_DELAY			5000
+#define CLOSE_DELAY			2500
 
 typedef enum { CLOSED, IN_OPEN, OUT_OPEN } state_t;
 
@@ -25,7 +26,7 @@ void PetDoorThread(void) {
 		}
 		break;
 	case IN_OPEN:
-		if (G_TinyStatus & INSIDE_MSK)
+		if ((G_TinyStatus & INSIDE_MSK) || !(G_DoorClosed & PET_CLOSED))
 			timer = 0;
 		else {
 			timer++;
@@ -37,7 +38,7 @@ void PetDoorThread(void) {
 		}
 		break;
 	case OUT_OPEN:
-		if (G_TinyStatus & OUTSIDE_MSK)
+		if ((G_TinyStatus & OUTSIDE_MSK) || !(G_DoorClosed & PET_CLOSED))
 			timer = 0;
 		else {
 			timer++;
