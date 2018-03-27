@@ -7,7 +7,7 @@
 #define PET_MUX				MSK(MUX0)
 #define MAIL_MUX			(MSK(MUX1) | MSK(MUX0))
 
-uint8_t G_DoorClosed;
+uint8_t G_DoorClosed = DOOR_CLOSED | MAIL_CLOSED | PET_CLOSED;
 
 uint8_t G_HallValue[3];
 static uint8_t currentHall;

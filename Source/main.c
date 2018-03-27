@@ -13,6 +13,7 @@
 #include "buttons.h"
 #include "times.h"
 #include "display.h"
+#include "mailbox.h"
 
 static volatile uint8_t G_u8SysTick = 0;
 static uint8_t G_u8ExpectedSysTick = 0;
@@ -60,6 +61,7 @@ __attribute__ ((OS_main)) int main(void) {
     ButtonService();
     IdLogService();
 
+    MailboxThread();
     TimesThread();
     //ServoThread();
     //RfidThread(PET_SPI);
