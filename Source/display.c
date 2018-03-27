@@ -24,8 +24,8 @@ void (*DisplayThread)(void) = InitMainMenu;
 #define TIME		0
 #define UNLOCK		1
 #define LOCK		2
-#define PET			0
-#define DOOR 		1
+#define NOTFULL		0
+#define FULL 		1
 
 static uint8_t lcdSuccess = 0;
 static uint8_t state = 0;
@@ -78,7 +78,7 @@ static void MainMenu(void) {
 static void InitTimeSetup(void) {
 	switch (state) {
 	case 0:
-		if (LcdWrite(LINE2_START, "NEXT   ^   SETUP"))
+		if (LcdWrite(LINE2_START, "ENTER  UP  SETUP"))
 			state++;
 		break;
 	case 1:
@@ -267,9 +267,13 @@ static void RfidSetup(void) {
 	switch (state) {
 	case 1:
 		if (LcdWrite(1, "   SCAN TAG  "))
-			state++;
+			state = 3;
 		return;
 	case 2:
+		if (LcdWrite(1, "   TAGS FULL "))
+			state = 3;
+		return;
+	case 3:
 		if (LcdWrite(LINE2_START, "DELETE    CANCEL")) {
 			state = 0;
 			DisplayThread = AddTag;
@@ -278,14 +282,27 @@ static void RfidSetup(void) {
 		return;
 	}
 
-
 	if (G_ButtonPressed & LEFT_BUTTON) {
-		state = 1;
-		G_AddId = MAIN_DOOR_RFID;
+		if (G_RfidDetected & MAIN_DOOR_FULL) {
+			state = 2;
+			setupMode = FULL;
+		}
+		else {
+			state = 1;
+			G_AddId = MAIN_DOOR_RFID;
+			setupMode = NOTFULL;
+		}
 	}
 	else if (G_ButtonPressed & MIDDLE_BUTTON) {
-		state = 1;
-		G_AddId = PET_DOOR_RFID;
+		if (G_RfidDetected & PET_DOOR_FULL) {
+			state = 2;
+			setupMode = FULL;
+		}
+		else {
+			state = 1;
+			G_AddId = PET_DOOR_RFID;
+			setupMode = NOTFULL;
+		}
 	}
 	else if (G_ButtonPressed & RIGHT_BUTTON) {
 		DisplayThread = InitMainMenu;
@@ -315,7 +332,7 @@ static void AddTag(void) {
 		return;
 	}
 
-	if (G_AddId == 0)
+	if (G_AddId == 0 && setupMode == NOTFULL)
 		state = 2;
 	else if (G_ButtonPressed & LEFT_BUTTON) {
 		G_AddId = G_AddId << 2;

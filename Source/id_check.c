@@ -40,6 +40,11 @@ void InitId(void) {
 		EECR = MSK(EERE);
 		*dataPtr = EEDR;
 	}
+
+	if (numPet == NUM_ID)
+		G_RfidDetected = PET_DOOR_FULL;
+	if (numDoor == NUM_ID)
+		G_RfidDetected |= MAIN_DOOR_FULL;
 }
 
 void IdLogService(void) {
@@ -116,11 +121,13 @@ void IdCheckThread(void) {
 	if (G_AddId & PET_DOOR_DELETE) {
 		G_AddId = 0;
 		numPet = 0;
+		G_RfidDetected &= ~PET_DOOR_FULL;
 		return;
 	}
 	if (G_AddId & MAIN_DOOR_DELETE) {
 		G_AddId = 0;
 		numDoor = 0;
+		G_RfidDetected &= ~MAIN_DOOR_FULL;
 		return;
 	}
 
@@ -151,6 +158,8 @@ void IdCheckThread(void) {
 			if (!detected && numPet < NUM_ID) {
 				petIds[numPet] = G_PiccUid[DOOR_SPI];
 				numPet++;
+				if (numPet == NUM_ID)
+					G_RfidDetected |= PET_DOOR_FULL;
 			}
 			G_AddId = 0;
 			G_PiccUid[DOOR_SPI] = 0;
@@ -179,6 +188,8 @@ void IdCheckThread(void) {
 			if (numDoor < NUM_ID) {
 				doorIds[numDoor] = G_PiccUid[DOOR_SPI];
 				numDoor++;
+				if (numDoor == NUM_ID)
+					G_RfidDetected |= MAIN_DOOR_FULL;
 			}
 			G_AddId = 0;
 		}
