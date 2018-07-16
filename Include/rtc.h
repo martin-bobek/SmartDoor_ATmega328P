@@ -3,7 +3,8 @@
 
 #include "util.h"
 
-#define CHANGE_FLAG             1
+#define CHANGE_FLAG             MSK(0)
+#define SERVICING_FLAG			MSK(1)
 #define STOP_FLAG_SEC           MSK(7)
 #define HOUR24_FLAG_HOUR        MSK(7)
 

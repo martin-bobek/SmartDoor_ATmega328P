@@ -143,7 +143,7 @@ static void AntiCollision(void) {
 }
 static void Timeout(void) {
   if (timeoutCounter == 0) {
-    timeoutCounter = 250;
+    timeoutCounter = 100;
     device++;
     if (device == NUM_RFID)
       device = 0;

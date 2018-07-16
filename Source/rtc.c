@@ -26,14 +26,19 @@ void RtcService(void) {
       counter = 0;
       REG(PORTD).Bit2 = 1;                                           // pull CE high indicating start of transmission
       state = WRITE;
-      data = G_RtcWrite ? WRITE_BURST : READ_BURST;
+      if (G_RtcWrite) {
+    	  G_RtcWrite = SERVICING_FLAG;
+    	  data = WRITE_BURST;
+      }
+      else
+    	  data = READ_BURST;
     }
     break;
   case WRITE:
     counter++;
     switch (counter) {
     case 9:
-      if (G_RtcWrite) {
+      if (G_RtcWrite & SERVICING_FLAG) {
         data = G_Seconds;
         break;
       }
@@ -55,7 +60,7 @@ void RtcService(void) {
       REG(PORTD).Bit2 = 0;                                           // pull CE pin low, ending data transfer
       G_RtcWrite = 0;
       state = IDLE;
-      counter = DELAY - 1;
+      counter = 0;
       return;
     }
     REG(PORTD).Bit7 = (data & 1) ? 1 : 0;                            // write data to IO

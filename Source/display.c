@@ -21,11 +21,12 @@ static void AddTag(void);
 
 void (*DisplayThread)(void) = InitMainMenu;
 
-#define TIME		0
-#define UNLOCK		1
-#define LOCK		2
-#define NOTFULL		0
-#define FULL 		1
+#define TIME			0
+#define UNLOCK			1
+#define LOCK			2
+#define NOTFULL			0
+#define FULL_DOOR 		1
+#define FULL_PET		2
 
 static uint8_t lcdSuccess = 0;
 static uint8_t state = 0;
@@ -285,7 +286,7 @@ static void RfidSetup(void) {
 	if (G_ButtonPressed & LEFT_BUTTON) {
 		if (G_RfidDetected & MAIN_DOOR_FULL) {
 			state = 2;
-			setupMode = FULL;
+			setupMode = FULL_DOOR;
 		}
 		else {
 			state = 1;
@@ -296,7 +297,7 @@ static void RfidSetup(void) {
 	else if (G_ButtonPressed & MIDDLE_BUTTON) {
 		if (G_RfidDetected & PET_DOOR_FULL) {
 			state = 2;
-			setupMode = FULL;
+			setupMode = FULL_PET;
 		}
 		else {
 			state = 1;
@@ -335,7 +336,17 @@ static void AddTag(void) {
 	if (G_AddId == 0 && setupMode == NOTFULL)
 		state = 2;
 	else if (G_ButtonPressed & LEFT_BUTTON) {
-		G_AddId = G_AddId << 2;
+		switch (setupMode) {
+		case NOTFULL:
+			G_AddId = G_AddId << 2;
+			break;
+		case FULL_PET:
+			G_AddId = PET_DOOR_DELETE;
+			break;
+		case FULL_DOOR:
+			G_AddId = MAIN_DOOR_DELETE;
+			break;
+		}
 		state = 3;
 	}
 	else if (G_ButtonPressed & RIGHT_BUTTON) {
